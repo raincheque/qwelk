@@ -43,7 +43,7 @@ WidgetAutomaton::WidgetAutomaton() {
 
     box.size = Vec(6 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
 
-    setPanel(SVG::load(assetPlugin(plugin, "res/Automaton.svg")));
+    setPanel(SVG::load(assetPlugin(plugin, "res/Blank.svg")));
 
     addChild(createScrew<ScrewSilver>(Vec(15, 0)));
     addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 0)));
