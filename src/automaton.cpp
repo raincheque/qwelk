@@ -21,8 +21,8 @@ struct ModuleAutomaton : Module {
     SchmittTrigger trig;
     
     ModuleAutomaton() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
-    void step override;
-}
+    void step() override;
+};
 
 void ModuleAutomaton::step() {
     if (trig.process(params[PARAM_LIGHT].value))
@@ -41,7 +41,7 @@ WidgetAutomaton::WidgetAutomaton() {
     ModuleAutomaton *module = new ModuleAutomaton();
     setModule(module);
 
-    box.size(Vec(6 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT));
+    box.size = Vec(6 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
 
     setPanel(SVG::load(assetPlugin(plugin, "res/Automaton.svg")));
 
@@ -50,15 +50,15 @@ WidgetAutomaton::WidgetAutomaton() {
     addChild(createScrew<ScrewSilver>(Vec(15, 365)));
     addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
     
-        addParam(createParam<Davies1900hBlackKnob>(Vec(28, 87), module, MyModule::PITCH_PARAM, -3.0, 3.0, 0.0));
+    // addParam(createParam<Davies1900hBlackKnob>(Vec(28, 87), module, MyModule::PITCH_PARAM, -3.0, 3.0, 0.0));
 
-    addInput(createInput<PJ301MPort>(Vec(33, 186), module, MyModule::PITCH_INPUT));
+    // addInput(createInput<PJ301MPort>(Vec(33, 186), module, MyModule::PITCH_INPUT));
 
-    addOutput(createOutput<PJ301MPort>(Vec(33, 275), module, MyModule::SINE_OUTPUT));
+    // addOutput(createOutput<PJ301MPort>(Vec(33, 275), module, MyModule::SINE_OUTPUT));
 
-    addChild(createLight<MediumLight<RedLight>>(Vec(41, 59), module, MyModule::BLINK_LIGHT));
+    // addChild(createLight<MediumLight<RedLight>>(Vec(41, 59), module, MyModule::BLINK_LIGHT));
 
-    addParam(createParam<LEDBezel>(Vec(50, 60), module, PARAM_LIGHT, 0.0, 1.0, 0.0));
-    addChild(createLight<MuteLight<GreenLight>>(Vec(50, 60), module, LIGHT_MUTE));
+    addParam(createParam<LEDBezel>(Vec(50, 60), module, ModuleAutomaton::PARAM_LIGHT, 0.0, 1.0, 0.0));
+    addChild(createLight<MuteLight<GreenLight>>(Vec(50, 60), module, ModuleAutomaton::LIGHT_MUTE));
 }
 

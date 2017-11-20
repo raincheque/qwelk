@@ -6,4 +6,4 @@ extern Plugin *plugin;
 
 struct WidgetAutomaton : ModuleWidget {
     WidgetAutomaton();
-}
+};
