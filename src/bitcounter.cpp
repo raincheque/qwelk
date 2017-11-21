@@ -6,7 +6,7 @@
 #define CHANNELS 8
 
 
-struct ModuleAutomaton : Module {
+struct ModuleBitCounter : Module {
     enum ParamIds {
         PARAM_STEP,
         PARAM_CELL,
@@ -33,11 +33,11 @@ struct ModuleAutomaton : Module {
     int states[CHANNELS*2] {};
     SchmittTrigger trigs[CHANNELS*2];
     
-    ModuleAutomaton() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
+    ModuleBitCounter() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     void step() override;
 };
 
-void ModuleAutomaton::step() {
+void ModuleBitCounter::step() {
     bool nextstep = false;
     // if (steptrig.process(params[PARAM_STEP].value))
         // nextstep = true;
@@ -79,8 +79,8 @@ struct MuteLight : _BASE {
 };
 
 
-WidgetAutomaton::WidgetAutomaton() {
-    ModuleAutomaton *module = new ModuleAutomaton();
+WidgetBitCounter::WidgetBitCounter() {
+    ModuleBitCounter *module = new ModuleBitCounter();
     setModule(module);
 
     box.size = Vec(8 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
@@ -88,7 +88,7 @@ WidgetAutomaton::WidgetAutomaton() {
     {
         SVGPanel *panel = new SVGPanel();
         panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Automaton.svg")));
+        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Blank_8.svg")));
         addChild(panel);
         
     }
@@ -111,20 +111,20 @@ WidgetAutomaton::WidgetAutomaton() {
 
     // next step
     for (int i = 0; i < CHANNELS; ++i) {
-        addParam(createParam<LEDBezel>(Vec(lghx - dist, ytop + ypad * i), module, ModuleAutomaton::PARAM_CELL + i, 0.0, 1.0, 0.0));
-        addChild(createLight<MuteLight<GreenLight>>(Vec(lghx - dist + tlpx, ytop + tlpy + ypad * i), module, ModuleAutomaton::LIGHT_MUTE + i));
+        addParam(createParam<LEDBezel>(Vec(lghx - dist, ytop + ypad * i), module, ModuleBitCounter::PARAM_CELL + i, 0.0, 1.0, 0.0));
+        addChild(createLight<MuteLight<GreenLight>>(Vec(lghx - dist + tlpx, ytop + tlpy + ypad * i), module, ModuleBitCounter::LIGHT_MUTE + i));
         
-        addParam(createParam<LEDBezel>(Vec(lghx, ytop + ypad * i), module, ModuleAutomaton::PARAM_CELL + CHANNELS + i, 0.0, 1.0, 0.0));
-        addChild(createLight<MuteLight<GreenLight>>(Vec(lghx + tlpx, ytop + tlpy + ypad * i), module, ModuleAutomaton::LIGHT_MUTE + CHANNELS + i));
+        addParam(createParam<LEDBezel>(Vec(lghx, ytop + ypad * i), module, ModuleBitCounter::PARAM_CELL + CHANNELS + i, 0.0, 1.0, 0.0));
+        addChild(createLight<MuteLight<GreenLight>>(Vec(lghx + tlpx, ytop + tlpy + ypad * i), module, ModuleBitCounter::LIGHT_MUTE + CHANNELS + i));
 
-        addOutput(createOutput<PJ301MPort>(Vec(lghx + 25, ytop + ypad * i), module, ModuleAutomaton::OUTPUT_CELL + i));
+        addOutput(createOutput<PJ301MPort>(Vec(lghx + 25, ytop + ypad * i), module, ModuleBitCounter::OUTPUT_CELL + i));
     }
 
-    addParam(createParam<LEDBezel>(Vec(box.size.x / 3.0 - 35, ytop - 20), module, ModuleAutomaton::PARAM_STEP, 0.0, 1.0, 0.0));
-    addChild(createLight<MuteLight<GreenLight>>(Vec(box.size.x / 3.0 - 35, ytop - 20), module, ModuleAutomaton::LIGHT_STEP));
+    addParam(createParam<LEDBezel>(Vec(box.size.x / 3.0 - 35, ytop - 20), module, ModuleBitCounter::PARAM_STEP, 0.0, 1.0, 0.0));
+    addChild(createLight<MuteLight<GreenLight>>(Vec(box.size.x / 3.0 - 35, ytop - 20), module, ModuleBitCounter::LIGHT_STEP));
     
-    addInput(createInput<PJ301MPort>(Vec(box.size.x / 3.0 - 35, ytop), module, ModuleAutomaton::INPUT_STEP));
+    addInput(createInput<PJ301MPort>(Vec(box.size.x / 3.0 - 35, ytop), module, ModuleBitCounter::INPUT_STEP));
     
-    addOutput(createOutput<PJ301MPort>(Vec(lghx, 320), module, ModuleAutomaton::OUTPUT_NUMON));
-    addOutput(createOutput<PJ301MPort>(Vec(lghx + 25, 320), module, ModuleAutomaton::OUTPUT_ANY));
+    addOutput(createOutput<PJ301MPort>(Vec(lghx, 320), module, ModuleBitCounter::OUTPUT_NUMON));
+    addOutput(createOutput<PJ301MPort>(Vec(lghx + 25, 320), module, ModuleBitCounter::OUTPUT_ANY));
 }
