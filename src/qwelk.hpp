@@ -8,6 +8,10 @@ struct WidgetAutomaton : ModuleWidget {
     WidgetAutomaton();
 };
 
+struct WidgetChaos : ModuleWidget {
+    WidgetChaos();
+};
+
 struct WidgetScaler : ModuleWidget {
     WidgetScaler();
 };
