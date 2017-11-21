@@ -30,9 +30,9 @@ struct ModuleScaler : Module {
 
 void ModuleScaler::step() {
     outputs[OUTPUT_SUB_5].value = inputs[INPUT_SUB_5].value - 5.0;
-    outputs[OUTPUT_MUL_2].value = inputs[INPUT_MUL_2].value * 2.0;
-    outputs[OUTPUT_DIV_2].value = inputs[INPUT_DIV_2].value * 0.5;
-    outputs[OUTPUT_ADD_5].value = inputs[INPUT_ADD_5].value + 5.0;
+    outputs[OUTPUT_MUL_2].value = inputs[INPUT_MUL_2].normalize(outputs[OUTPUT_SUB_5].value) * 2.0;
+    outputs[OUTPUT_DIV_2].value = inputs[INPUT_DIV_2].normalize(outputs[OUTPUT_MUL_2].value) * 0.5;
+    outputs[OUTPUT_ADD_5].value = inputs[INPUT_ADD_5].normalize(outputs[OUTPUT_DIV_2].value) + 5.0;
 }
 
 
