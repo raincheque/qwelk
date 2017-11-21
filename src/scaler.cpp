@@ -44,20 +44,23 @@ WidgetScaler::WidgetScaler() {
     {
         SVGPanel *panel = new SVGPanel();
         panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Blank_2.svg")));
+        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Scaler.svg")));
         addChild(panel);
     }
 
     addChild(createScrew<ScrewSilver>(Vec(15, 0)));
     addChild(createScrew<ScrewSilver>(Vec(15, 365)));
 
-    float x = box.size.x / 2.0 - 12, y = 0, ytop = 20, ystep = 35;
+    float x = box.size.x / 2.0 - 12, y = 0, ytop = 30, ystep = 30, mstep = 16;
     addInput(createInput<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), module, ModuleScaler::INPUT_SUB_5));
     addOutput(createOutput<PJ301MPort>( Vec(x, ytop + (y+=ystep)), module, ModuleScaler::OUTPUT_SUB_5));
+    ytop += mstep;
     addInput(createInput<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), module, ModuleScaler::INPUT_MUL_2));
     addOutput(createOutput<PJ301MPort>( Vec(x, ytop + (y+=ystep)), module, ModuleScaler::OUTPUT_MUL_2));
+    ytop += mstep;
     addInput(createInput<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), module, ModuleScaler::INPUT_DIV_2));
     addOutput(createOutput<PJ301MPort>( Vec(x, ytop + (y+=ystep)), module, ModuleScaler::OUTPUT_DIV_2));
+    ytop += mstep;
     addInput(createInput<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), module, ModuleScaler::INPUT_ADD_5));
     addOutput(createOutput<PJ301MPort>( Vec(x, ytop + (y+=ystep)), module, ModuleScaler::OUTPUT_ADD_5));
 }

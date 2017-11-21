@@ -40,16 +40,17 @@ WidgetOr::WidgetOr() {
     {
         SVGPanel *panel = new SVGPanel();
         panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Blank_2.svg")));
+        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Or.svg")));
         addChild(panel);
     }
 
     addChild(createScrew<ScrewSilver>(Vec(15, 0)));
     addChild(createScrew<ScrewSilver>(Vec(15, 365)));
 
-    float x = box.size.x / 2.0 - 12, ytop = 20, ystep = 35;
+    float x = box.size.x / 2.0 - 12, ytop = 45, ystep = 32.85;
     for (int i = 0; i < CHANNELS; ++i)
         addInput(createInput<PJ301MPort>(Vec(x, ytop + ystep * i), module, ModuleOr::INPUT_CHANNEL + i));
+    ytop += 9;
     addOutput(createOutput<PJ301MPort>( Vec(x, ytop + ystep * CHANNELS), module, ModuleOr::OUTPUT_OR));
 }
 
