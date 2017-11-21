@@ -19,6 +19,7 @@ struct ModuleAutomaton : Module {
     enum OutputIds {
         OUTPUT_ANY,
         OUTPUT_NUMON,
+        OUTPUT_NUMBER,
         OUTPUT_CELL,
         NUM_OUTPUTS = OUTPUT_CELL + CHANNELS
     };
@@ -28,45 +29,67 @@ struct ModuleAutomaton : Module {
         NUM_LIGHTS = LIGHT_MUTE + CHANNELS * 2
     };
 
-    int ons = 0;
-    SchmittTrigger steptrig;
+    int rule = 30;
+    SchmittTrigger trig_step_input;
+    SchmittTrigger trig_step_manual;
+    SchmittTrigger trig_cells[CHANNELS*2];
     int states[CHANNELS*2] {};
-    SchmittTrigger trigs[CHANNELS*2];
+
     
     ModuleAutomaton() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     void step() override;
 };
 
 void ModuleAutomaton::step() {
-    bool nextstep = false;
-    // if (steptrig.process(params[PARAM_STEP].value))
-        // nextstep = true;
-    if (steptrig.process(inputs[INPUT_STEP].value))
-        nextstep = true;
-    lights[LIGHT_STEP].setBrightness(nextstep ? 0.9 : 0.0);
-
-    for (int i = 0; i < CHANNELS * 2; ++i)
-        if (trigs[i].process(params[PARAM_CELL + i].value))
-            states[i] ^= 1;
+    int nextstep = 0;
     
-    if (nextstep)
-        ons = (ons + 1) % (256);
-    for (int i = 0; i < CHANNELS; ++i)
-        states[CHANNELS + i] = (((ons >> i) & 1) == 1) ? 1 : 0;
+    if (trig_step_manual.process(params[PARAM_STEP].value))
+        nextstep = 1;
+
+    if (trig_step_input.process(inputs[INPUT_STEP].value))
+        nextstep = 1;
+    
+    lights[LIGHT_STEP].setBrightness(trig_step_manual.isHigh() || trig_step_input.isHigh() ? 0.9 : 0.0);    
+
+    if (nextstep) {
+        for (int i = 0; i < CHANNELS; ++i) {
+            states[CHANNELS + i] = states[i];
+        }
+        for (int i = 0; i < CHANNELS; ++i) {
+            int sum = 0;
+            int tl  = i == 0 ? CHANNELS - 1 : i - 1;
+            int tm  = i;
+            int tr  = i < CHANNELS - 1 ? i : 0;
+            sum |= states[CHANNELS + tr] ? (1 << 0) : 0;
+            sum |= states[CHANNELS + tm] ? (1 << 1) : 0;
+            sum |= states[CHANNELS + tl] ? (1 << 2) : 0;
+            states[i] = (rule & (1 << sum)) != 0;
+        }
+    }
+
+    // handle manual input
+    for (int i = 0; i < CHANNELS * 2; ++i)
+        if (trig_cells[i].process(params[PARAM_CELL + i].value))
+            states[i] ^= 1;
     
     for (int i = 0; i < CHANNELS * 2; ++i)
         lights[LIGHT_MUTE + i].setBrightness(states[i] ? 0.9 : 0.0);
 
+    
     const float output_volt = 5.0;
     const float output_volt_uni = output_volt * 2;
     for (int i = 0; i < CHANNELS; ++i)
         outputs[OUTPUT_CELL + i].value = states[i + CHANNELS] ? output_volt : 0.0;
 
-    int oncount = 0;
-    for (int i = 0; i < CHANNELS; ++i)
+    int oncount = 0, number = 0;
+    for (int i = 0; i < CHANNELS; ++i) {
         oncount += states[i + CHANNELS];
+        number |= ((1 << i) * states[i + CHANNELS]);
+    }
+    
     outputs[OUTPUT_ANY].value = oncount ? output_volt : 0.0;
     outputs[OUTPUT_NUMON].value = ((float)oncount / (float)CHANNELS) * output_volt_uni;
+    outputs[OUTPUT_NUMBER].value = ((float)number / (float)(1 << (CHANNELS))) * 10.0;
 }
 
 
@@ -125,6 +148,7 @@ WidgetAutomaton::WidgetAutomaton() {
     
     addInput(createInput<PJ301MPort>(Vec(box.size.x / 3.0 - 35, ytop), module, ModuleAutomaton::INPUT_STEP));
     
+    addOutput(createOutput<PJ301MPort>(Vec(lghx - 25, 320), module, ModuleAutomaton::OUTPUT_NUMBER));
     addOutput(createOutput<PJ301MPort>(Vec(lghx, 320), module, ModuleAutomaton::OUTPUT_NUMON));
     addOutput(createOutput<PJ301MPort>(Vec(lghx + 25, 320), module, ModuleAutomaton::OUTPUT_ANY));
 }
