@@ -11,3 +11,11 @@ struct WidgetAutomaton : ModuleWidget {
 struct WidgetBitCounter : ModuleWidget {
     WidgetBitCounter();
 };
+
+struct WidgetScaler : ModuleWidget {
+    WidgetScaler();
+};
+
+struct WidgetOr : ModuleWidget {
+    WidgetOr();
+};
