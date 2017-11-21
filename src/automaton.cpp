@@ -71,13 +71,6 @@ void ModuleAutomaton::step()
             int tl  = i == 0 ? CHANNELS - 1 : i - 1;
             int tm  = i;
             int tr  = i < CHANNELS - 1 ? i : 0;
-            
-            if (scan < 0) {
-                int t = tl;
-                tl    = tr;
-                tr    =  t;
-            }
-            
             sum |= states[CHANNELS + tr] ? (1 << 0) : 0;
             sum |= states[CHANNELS + tm] ? (1 << 1) : 0;
             sum |= states[CHANNELS + tl] ? (1 << 2) : 0;
@@ -90,17 +83,20 @@ void ModuleAutomaton::step()
         if (trig_cells[i].process(params[PARAM_CELL + i].value))
             states[i] ^= 1;
     
-    int oncount = 0, number = 0;
+    int count = 0, number = 0;
     for (int i = 0; i < CHANNELS; ++i) {
-        oncount += states[i + CHANNELS];
-        number |= ((1 << i) * states[i + CHANNELS]);
+        count += states[i + CHANNELS];
+        if (scan >= 0)
+            number |= ((1 << i) * states[CHANNELS + i]);
+        else
+            number |= ((1 << (CHANNELS - 1 - i)) * states[CHANNELS + i]);
     }
 
     // individual gate output
     for (int i = 0; i < CHANNELS; ++i)
         outputs[OUTPUT_CELL + i].value = states[i + CHANNELS] ? output_volt : 0.0;
     // number of LIVE cells
-    outputs[OUTPUT_COUNT].value = ((float)oncount / (float)CHANNELS) * output_volt_uni;
+    outputs[OUTPUT_COUNT].value = ((float)count / (float)CHANNELS) * output_volt_uni;
     // the binary number LIVE cells represent 
     outputs[OUTPUT_NUMBER].value = ((float)number / (float)(1 << (CHANNELS))) * 10.0;
 
