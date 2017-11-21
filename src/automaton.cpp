@@ -32,7 +32,6 @@ struct ModuleAutomaton : Module {
         NUM_LIGHTS = LIGHT_MUTE + CHANNELS * 2
     };
 
-    int             rule = 0;
     int             scan = 1;
     SchmittTrigger  trig_step_input;
     SchmittTrigger  trig_step_manual;
@@ -50,31 +49,35 @@ struct ModuleAutomaton : Module {
 void ModuleAutomaton::step()
 {
     int nextstep = 0;
-    
-    if (trig_step_manual.process(params[PARAM_STEP].value))
+    if (trig_step_manual.process(params[PARAM_STEP].value)
+        || trig_step_input.process(inputs[INPUT_STEP].value))
         nextstep = 1;
 
-    if (trig_step_input.process(inputs[INPUT_STEP].value))
-        nextstep = 1;
-
+    // determine scan direction
     scan = inputs[INPUT_SCAN].normalize(scan) < 0 ? -1 : 1;
     
-    lights[LIGHT_STEP].setBrightness(trig_step_manual.isHigh() || trig_step_input.isHigh() ? 0.9 : 0.0);    
-
     if (nextstep) {
-        rule = 0;
-        for (int i = 0; i < CHANNELS; ++i) {
+        int rule = 0;
+        // read rule from inputs
+        for (int i = 0; i < CHANNELS; ++i)
             if (inputs[INPUT_RULE + i].active && inputs[INPUT_RULE + i].value > 0.0)
                 rule |= 1 << i;
-        }
-        for (int i = 0; i < CHANNELS; ++i) {
+        // copy prev state to output cells
+        for (int i = 0; i < CHANNELS; ++i)
             states[CHANNELS + i] = states[i];
-        }
+        // determine the next gen
         for (int i = 0; i < CHANNELS; ++i) {
             int sum = 0;
             int tl  = i == 0 ? CHANNELS - 1 : i - 1;
             int tm  = i;
             int tr  = i < CHANNELS - 1 ? i : 0;
+            
+            if (scan < 0) {
+                int t = tl;
+                tl    = tr;
+                tr    =  t;
+            }
+            
             sum |= states[CHANNELS + tr] ? (1 << 0) : 0;
             sum |= states[CHANNELS + tm] ? (1 << 1) : 0;
             sum |= states[CHANNELS + tl] ? (1 << 2) : 0;
@@ -87,20 +90,28 @@ void ModuleAutomaton::step()
         if (trig_cells[i].process(params[PARAM_CELL + i].value))
             states[i] ^= 1;
     
-    for (int i = 0; i < CHANNELS * 2; ++i)
-        lights[LIGHT_MUTE + i].setBrightness(states[i] ? 0.9 : 0.0);
-
-    for (int i = 0; i < CHANNELS; ++i)
-        outputs[OUTPUT_CELL + i].value = states[i + CHANNELS] ? output_volt : 0.0;
-
     int oncount = 0, number = 0;
     for (int i = 0; i < CHANNELS; ++i) {
         oncount += states[i + CHANNELS];
         number |= ((1 << i) * states[i + CHANNELS]);
     }
 
+    // individual gate output
+    for (int i = 0; i < CHANNELS; ++i)
+        outputs[OUTPUT_CELL + i].value = states[i + CHANNELS] ? output_volt : 0.0;
+    // number of LIVE cells
     outputs[OUTPUT_COUNT].value = ((float)oncount / (float)CHANNELS) * output_volt_uni;
+    // the binary number LIVE cells represent 
     outputs[OUTPUT_NUMBER].value = ((float)number / (float)(1 << (CHANNELS))) * 10.0;
+
+    // indicate step direction
+    lights[LIGHT_POS_SCAN].setBrightness(scan < 0 ? 0.0 : 0.9);
+    lights[LIGHT_NEG_SCAN].setBrightness(scan < 0 ? 0.9 : 0.0);
+    // indicate next generation
+    lights[LIGHT_STEP].setBrightness(trig_step_manual.isHigh() || trig_step_input.isHigh() ? 0.9 : 0.0);
+    // blink according to state
+    for (int i = 0; i < CHANNELS * 2; ++i)
+        lights[LIGHT_MUTE + i].setBrightness(states[i] ? 0.9 : 0.0);
 }
 
 
@@ -140,16 +151,15 @@ WidgetAutomaton::WidgetAutomaton()
     
     float ytop = 55;
 
-    addInput(createInput<PJ301MPort>(           Vec(lghx - dist * 2                 , ytop - ypad         ), module, ModuleAutomaton::INPUT_SCAN));
-    addParam(createParam<LEDBezel>(             Vec(lghx - dist * 2 + dist          , ytop - ypad         ), module, ModuleAutomaton::PARAM_SCAN, 0.0, 1.0, 0.0));
-    addChild(createLight<MuteLight<GreenLight>>(Vec(lghx - dist * 2 + dist + tlpx   , ytop - ypad + tlpy  ), module, ModuleAutomaton::LIGHT_POS_SCAN));
-    addChild(createLight<MuteLight<GreenLight>>(Vec(lghx - dist * 2 + dist + tlpx   , ytop - ypad + tlpy  ), module, ModuleAutomaton::LIGHT_NEG_SCAN));
+    addInput(createInput<PJ301MPort>(           Vec(lghx - dist * 2         , ytop - ypad         ), module, ModuleAutomaton::INPUT_SCAN));
+    // addParam(createParam<LEDBezel>(             Vec(lghx + dist          , ytop - ypad         ), module, ModuleAutomaton::PARAM_SCAN, 0.0, 1.0, 0.0));
+    addChild(createLight<MuteLight<GreenRedLight>>(Vec(lghx + dist + tlpx   , ytop - ypad + tlpy  ), module, ModuleAutomaton::LIGHT_POS_SCAN));
 
     ytop += ypad;
     
-    addInput(createInput<PJ301MPort>(           Vec(lghx - dist * 2                 , ytop - ypad         ), module, ModuleAutomaton::INPUT_STEP));
-    addParam(createParam<LEDBezel>(             Vec(lghx - dist * 2 + dist          , ytop - ypad         ), module, ModuleAutomaton::PARAM_STEP, 0.0, 1.0, 0.0));
-    addChild(createLight<MuteLight<GreenLight>>(Vec(lghx - dist * 2 + dist + tlpx   , ytop - ypad + tlpy  ), module, ModuleAutomaton::LIGHT_STEP));
+    addInput(createInput<PJ301MPort>(           Vec(lghx - dist * 2     , ytop - ypad         ), module, ModuleAutomaton::INPUT_STEP));
+    addParam(createParam<LEDBezel>(             Vec(lghx + dist         , ytop - ypad         ), module, ModuleAutomaton::PARAM_STEP, 0.0, 1.0, 0.0));
+    addChild(createLight<MuteLight<GreenLight>>(Vec(lghx + dist + tlpx  , ytop - ypad + tlpy  ), module, ModuleAutomaton::LIGHT_STEP));
     
     for (int i = 0; i < CHANNELS; ++i) {
         addInput(createInput<PJ301MPort>(           Vec(lghx - dist * 2     , ytop + ypad * i       ), module, ModuleAutomaton::INPUT_RULE + i));
