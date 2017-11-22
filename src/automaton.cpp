@@ -35,6 +35,8 @@ struct ModuleAutomaton : Module {
     int             scan = 1;
     SchmittTrigger  trig_step_input;
     SchmittTrigger  trig_step_manual;
+    SchmittTrigger  trig_scan_manual;
+    SchmittTrigger  trig_scan_input;
     SchmittTrigger  trig_cells[CHANNELS*2];
     int             states[CHANNELS*2] {};
     
@@ -54,7 +56,11 @@ void ModuleAutomaton::step()
         nextstep = 1;
 
     // determine scan direction
-    scan = inputs[INPUT_SCAN].normalize(scan) < 0 ? -1 : 1;
+    if (trig_scan_input.process(inputs[INPUT_SCAN].value))
+        scan = inputs[INPUT_SCAN].normalize(scan) < 0 ? -1 : 1;
+    // manual tinkering with step?
+    if (trig_scan_manual.process(params[PARAM_SCAN].value))
+        scan *= -1;
     
     if (nextstep) {
         int rule = 0;
@@ -147,9 +153,9 @@ WidgetAutomaton::WidgetAutomaton()
     
     float ytop = 55;
 
-    addInput(createInput<PJ301MPort>(           Vec(lghx - dist * 2         , ytop - ypad         ), module, ModuleAutomaton::INPUT_SCAN));
-    // addParam(createParam<LEDBezel>(             Vec(lghx + dist          , ytop - ypad         ), module, ModuleAutomaton::PARAM_SCAN, 0.0, 1.0, 0.0));
-    addChild(createLight<MuteLight<GreenRedLight>>(Vec(lghx + dist + tlpx   , ytop - ypad + tlpy  ), module, ModuleAutomaton::LIGHT_POS_SCAN));
+    addInput(createInput<PJ301MPort>(               Vec(lghx - dist * 2      , ytop - ypad         ), module, ModuleAutomaton::INPUT_SCAN));
+    addParam(createParam<LEDBezel>(                 Vec(lghx + dist          , ytop - ypad         ), module, ModuleAutomaton::PARAM_SCAN, 0.0, 1.0, 0.0));
+    addChild(createLight<MuteLight<GreenRedLight>>( Vec(lghx + dist + tlpx   , ytop - ypad + tlpy  ), module, ModuleAutomaton::LIGHT_POS_SCAN));
 
     ytop += ypad;
     
