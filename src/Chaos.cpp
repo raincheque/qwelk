@@ -48,7 +48,10 @@ struct ModuleChaos : Module {
     int             scan = 1;
     SchmittTrigger  trig_step_input;
     SchmittTrigger  trig_step_manual;
+    SchmittTrigger  trig_scan_input;
+    SchmittTrigger  trig_scan_manual;
     SchmittTrigger  trig_cells[CHANNELS*2];
+    SchmittTrigger  trig_cells_input[CHANNELS];
     int             states[CHANNELS*2] {};
     
     const float     output_volt = 5.0;
@@ -67,7 +70,11 @@ void ModuleChaos::step()
         nextstep = 1;
 
     // determine scan direction
-    scan = inputs[INPUT_SCAN].normalize(scan) < 0 ? -1 : 1;
+    if (trig_scan_input.process(inputs[INPUT_SCAN].value))
+        scan = inputs[INPUT_SCAN].normalize(scan) < 0 ? -1 : 1;
+    // manual tinkering with step?
+    if (trig_scan_manual.process(params[PARAM_SCAN].value))
+        scan *= -1;
     
     if (nextstep) {
         int rule = 0;
@@ -97,7 +104,8 @@ void ModuleChaos::step()
             states[i] ^= 1;
     // input trigs
     for (int i = 0; i < CHANNELS; ++i)
-        if (inputs[INPUT_TRIG + i].value > 0)
+        if (trig_cells_input[i].process(inputs[INPUT_TRIG + i].value)
+            && inputs[INPUT_TRIG + i].value > 0)
             states[i] = 1;
     
     int count_a = 0, count_b = 0, number_a = 0, number_b = 0;
@@ -177,6 +185,7 @@ WidgetChaos::WidgetChaos()
     float ytop = 55;
 
     addInput(createInput<PJ301MPort>(               Vec(lghx - dist * 3             , ytop - ypad         ), module, ModuleChaos::INPUT_SCAN));
+    addParam(createParam<LEDBezel>(                 Vec(lghx - dist * 2             , ytop - ypad         ), module, ModuleChaos::PARAM_SCAN, 0.0, 1.0, 0.0));
     addChild(createLight<MuteLight<GreenRedLight>>( Vec(lghx - dist * 2 +  tlpx     , ytop - ypad + tlpy  ), module, ModuleChaos::LIGHT_POS_SCAN));
 
     ytop += ypad;
