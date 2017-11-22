@@ -16,6 +16,19 @@ struct WidgetScaler : ModuleWidget {
     WidgetScaler();
 };
 
+struct WidgetXFade : ModuleWidget {
+    WidgetXFade();
+};
+
 struct WidgetOr : ModuleWidget {
     WidgetOr();
 };
+
+struct WidgetNot : ModuleWidget {
+    WidgetNot();
+};
+
+struct WidgetXor : ModuleWidget {
+    WidgetXor();
+};
+
