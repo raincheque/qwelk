@@ -12,6 +12,10 @@ struct WidgetChaos : ModuleWidget {
     WidgetChaos();
 };
 
+struct WidgetByte : ModuleWidget {
+    WidgetByte();
+};
+
 struct WidgetScaler : ModuleWidget {
     WidgetScaler();
 };
