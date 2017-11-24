@@ -191,11 +191,11 @@ void ModuleChaos::step()
     outputs[OUTPUT_COUNT_AND].value = ((float)count_and / (float)CHANNELS) * output_volt_uni;
     outputs[OUTPUT_COUNT_OR].value  = ((float)count_or  / (float)CHANNELS) * output_volt_uni;
     // the binary number LIVE cells represent
-    outputs[OUTPUT_NUMBER_A].value      = ((float)val_a   / (float)(1 << (CHANNELS))) * 10.0;
-    outputs[OUTPUT_NUMBER_B].value      = ((float)val_b   / (float)(1 << (CHANNELS))) * 10.0;
-    outputs[OUTPUT_NUMBER_XOR].value    = ((float)val_xor / (float)(1 << (CHANNELS))) * 10.0;
-    outputs[OUTPUT_NUMBER_AND].value    = ((float)val_and / (float)(1 << (CHANNELS))) * 10.0;
-    outputs[OUTPUT_NUMBER_OR].value     = ((float)val_or  / (float)(1 << (CHANNELS))) * 10.0;
+    outputs[OUTPUT_NUMBER_A].value      = ((float)val_a   / (float)((1 << CHANNELS) - 1)) * output_volt_uni;
+    outputs[OUTPUT_NUMBER_B].value      = ((float)val_b   / (float)((1 << CHANNELS) - 1)) * output_volt_uni;
+    outputs[OUTPUT_NUMBER_XOR].value    = ((float)val_xor / (float)((1 << CHANNELS) - 1)) * output_volt_uni;
+    outputs[OUTPUT_NUMBER_AND].value    = ((float)val_and / (float)((1 << CHANNELS) - 1)) * output_volt_uni;
+    outputs[OUTPUT_NUMBER_OR].value     = ((float)val_or  / (float)((1 << CHANNELS) - 1)) * output_volt_uni;
 
     // indicate step direction
     lights[LIGHT_POS_SCAN].setBrightness(scan < 0 ? 0.0 : 0.9);
