@@ -151,7 +151,7 @@ void ModuleAutomaton::step()
     // number of LIVE cells
     outputs[OUTPUT_COUNT].value = ((float)count / (float)CHANNELS) * output_volt_uni;
     // the binary number LIVE cells represent 
-    outputs[OUTPUT_NUMBER].value = ((float)number / (float)(1 << (CHANNELS))) * 10.0;
+    outputs[OUTPUT_NUMBER].value = ((float)number / (float)((1 << CHANNELS) - 1)) * output_volt_uni;
 
     // indicate step direction
     lights[LIGHT_POS_SCAN].setBrightness(scan < 0 ? 0.0 : 0.9);
