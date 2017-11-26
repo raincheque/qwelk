@@ -137,11 +137,11 @@ void ModuleChaos::step()
             int sum = 0;
             int tl  = i == 0 ? CHANNELS - 1 : i - 1;
             int tm  = i;
-            int tr  = i < CHANNELS - 1 ? i : 0;
+            int tr  = i < CHANNELS - 1 ? i + 1: 0;
             sum |= states[CHANNELS + tr] ? (1 << 0) : 0;
             sum |= states[CHANNELS + tm] ? (1 << 1) : 0;
             sum |= states[CHANNELS + tl] ? (1 << 2) : 0;
-            states[i] = (rule & (1 << sum)) != 0;
+            states[i] = (rule & (1 << sum)) != 0 ? 1 : 0;
         }
     }
 
