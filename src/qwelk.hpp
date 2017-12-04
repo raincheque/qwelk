@@ -12,6 +12,10 @@ struct WidgetChaos : ModuleWidget {
     WidgetChaos();
 };
 
+struct WidgetByte : ModuleWidget {
+    WidgetByte();
+};
+
 struct WidgetScaler : ModuleWidget {
     WidgetScaler();
 };
@@ -32,3 +36,6 @@ struct WidgetXor : ModuleWidget {
     WidgetXor();
 };
 
+struct WidgetIndra : ModuleWidget {
+    WidgetIndra();
+};

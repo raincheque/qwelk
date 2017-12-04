@@ -123,11 +123,11 @@ void ModuleAutomaton::step()
             int sum = 0;
             int tl  = i == 0 ? CHANNELS - 1 : i - 1;
             int tm  = i;
-            int tr  = i < CHANNELS - 1 ? i : 0;
+            int tr  = i < CHANNELS - 1 ? i + 1 : 0;
             sum |= states[CHANNELS + tr] ? (1 << 0) : 0;
             sum |= states[CHANNELS + tm] ? (1 << 1) : 0;
             sum |= states[CHANNELS + tl] ? (1 << 2) : 0;
-            states[i] = (rule & (1 << sum)) != 0;
+            states[i] = (rule & (1 << sum)) != 0 ? 1 : 0;
         }
     }
 
@@ -151,7 +151,7 @@ void ModuleAutomaton::step()
     // number of LIVE cells
     outputs[OUTPUT_COUNT].value = ((float)count / (float)CHANNELS) * output_volt_uni;
     // the binary number LIVE cells represent 
-    outputs[OUTPUT_NUMBER].value = ((float)number / (float)(1 << (CHANNELS))) * 10.0;
+    outputs[OUTPUT_NUMBER].value = ((float)number / (float)((1 << CHANNELS) - 1)) * output_volt_uni;
 
     // indicate step direction
     lights[LIGHT_POS_SCAN].setBrightness(scan < 0 ? 0.0 : 0.9);

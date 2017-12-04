@@ -137,11 +137,11 @@ void ModuleChaos::step()
             int sum = 0;
             int tl  = i == 0 ? CHANNELS - 1 : i - 1;
             int tm  = i;
-            int tr  = i < CHANNELS - 1 ? i : 0;
+            int tr  = i < CHANNELS - 1 ? i + 1: 0;
             sum |= states[CHANNELS + tr] ? (1 << 0) : 0;
             sum |= states[CHANNELS + tm] ? (1 << 1) : 0;
             sum |= states[CHANNELS + tl] ? (1 << 2) : 0;
-            states[i] = (rule & (1 << sum)) != 0;
+            states[i] = (rule & (1 << sum)) != 0 ? 1 : 0;
         }
     }
 
@@ -155,49 +155,47 @@ void ModuleChaos::step()
             && inputs[INPUT_TRIG + i].value > 0)
             states[i] = 1;
     
-    int count_a = 0, count_b = 0, number_a = 0, number_b = 0;
-    int count_and = 0, count_xor = 0, count_or = 0, val_and = 0, val_xor = 0, val_or = 0;
+    int count_a = 0, count_b = 0, count_and = 0, count_xor = 0, count_or = 0,
+          val_a = 0, val_b = 0, val_and = 0, val_xor = 0, val_or = 0;
+    
     for (int i = 0; i < CHANNELS; ++i) {
-        count_a += states[i];
-        count_b += states[i + CHANNELS];
-        count_and += states[i] && states[i + CHANNELS];
-        count_xor += states[i] == states[i + CHANNELS];
-        count_or  += states[i] || states[i + CHANNELS];
-        if (scan >= 0) {
-            number_a |= ((1 << i) * states[i]);
-            number_b |= ((1 << i) * states[CHANNELS + i]);
-            val_and  |= ((1 << i) * (states[i] && states[i + CHANNELS]  ? 1 : 0));
-            val_xor  |= ((1 << i) * (states[i] == states[i + CHANNELS]  ? 0 : 1));
-            val_or   |= ((1 << i) * (states[i] || states[i + CHANNELS]  ? 1 : 0));
-        } else {
-            number_a |= ((1 << (CHANNELS - 1 - i)) * states[i]);
-            number_b |= ((1 << (CHANNELS - 1 - i)) * states[CHANNELS + i]);
-            val_and  |= ((1 << (CHANNELS - 1 - i)) * (states[i] && states[i + CHANNELS]  ? 1 : 0));
-            val_xor  |= ((1 << (CHANNELS - 1 - i)) * (states[i] == states[i + CHANNELS]  ? 0 : 1));
-            val_or   |= ((1 << (CHANNELS - 1 - i)) * (states[i] || states[i + CHANNELS]  ? 1 : 0));
-        }
-    }
+        int bit     = scan >= 0 ? i : (CHANNELS - 1 - i);
+        int ab_and  = states[i] && states[i + CHANNELS];
+        int ab_xor  = 1 - (states[i] == states[i + CHANNELS]);
+        int ab_or   = states[i] || states[i + CHANNELS];
+        
+        count_a     += states[i];
+        count_b     += states[i + CHANNELS];
+        count_and   += ab_and;
+        count_xor   += ab_xor;
+        count_or    += ab_or;
 
-    // individual gate output
-    for (int i = 0; i < CHANNELS; ++i) {
-        outputs[OUTPUT_GATE_A   + i].value = states[i]                          ? output_volt : 0.0;
-        outputs[OUTPUT_GATE_B   + i].value = states[i + CHANNELS]               ? output_volt : 0.0;
-        outputs[OUTPUT_GATE_AND + i].value = states[i] && states[i + CHANNELS]  ? output_volt : 0.0;
-        outputs[OUTPUT_GATE_XOR + i].value = states[i] != states[i + CHANNELS]  ? output_volt : 0.0;
-        outputs[OUTPUT_GATE_OR  + i].value = states[i] || states[i + CHANNELS]  ? output_volt : 0.0;
+        if (states[i]           ) val_a   |= 1 << bit;
+        if (states[CHANNELS + i]) val_b   |= 1 << bit;
+        if (ab_and              ) val_and |= 1 << bit;
+        if (ab_xor              ) val_xor |= 1 << bit;
+        if (ab_or               ) val_or  |= 1 << bit;
+        
+        // individual gate output
+        outputs[OUTPUT_GATE_A   + i].value = states[i]              ? output_volt : 0.0;
+        outputs[OUTPUT_GATE_B   + i].value = states[i + CHANNELS]   ? output_volt : 0.0;
+        outputs[OUTPUT_GATE_AND + i].value = ab_and                 ? output_volt : 0.0;
+        outputs[OUTPUT_GATE_XOR + i].value = ab_xor                 ? output_volt : 0.0;
+        outputs[OUTPUT_GATE_OR  + i].value = ab_or                  ? output_volt : 0.0;
     }
+    
     // number of LIVE cells
-    outputs[OUTPUT_COUNT_A].value   = ((float)count_a / (float)CHANNELS) * output_volt_uni;
-    outputs[OUTPUT_COUNT_B].value   = ((float)count_b / (float)CHANNELS) * output_volt_uni;
+    outputs[OUTPUT_COUNT_A].value   = ((float)count_a   / (float)CHANNELS) * output_volt_uni;
+    outputs[OUTPUT_COUNT_B].value   = ((float)count_b   / (float)CHANNELS) * output_volt_uni;
     outputs[OUTPUT_COUNT_XOR].value = ((float)count_xor / (float)CHANNELS) * output_volt_uni;
     outputs[OUTPUT_COUNT_AND].value = ((float)count_and / (float)CHANNELS) * output_volt_uni;
-    outputs[OUTPUT_COUNT_OR].value  = ((float)count_or / (float)CHANNELS) * output_volt_uni;
+    outputs[OUTPUT_COUNT_OR].value  = ((float)count_or  / (float)CHANNELS) * output_volt_uni;
     // the binary number LIVE cells represent
-    outputs[OUTPUT_NUMBER_A].value      = ((float)number_a / (float)(1 << (CHANNELS))) * 10.0;
-    outputs[OUTPUT_NUMBER_B].value      = ((float)number_b / (float)(1 << (CHANNELS))) * 10.0;
-    outputs[OUTPUT_NUMBER_XOR].value    = ((float)val_xor / (float)(1 << (CHANNELS))) * 10.0;
-    outputs[OUTPUT_NUMBER_AND]. value   = ((float)val_and / (float)(1 << (CHANNELS))) * 10.0;
-    outputs[OUTPUT_NUMBER_OR].value     = ((float)val_or / (float)(1 << (CHANNELS))) * 10.0;
+    outputs[OUTPUT_NUMBER_A].value      = ((float)val_a   / (float)((1 << CHANNELS) - 1)) * output_volt_uni;
+    outputs[OUTPUT_NUMBER_B].value      = ((float)val_b   / (float)((1 << CHANNELS) - 1)) * output_volt_uni;
+    outputs[OUTPUT_NUMBER_XOR].value    = ((float)val_xor / (float)((1 << CHANNELS) - 1)) * output_volt_uni;
+    outputs[OUTPUT_NUMBER_AND].value    = ((float)val_and / (float)((1 << CHANNELS) - 1)) * output_volt_uni;
+    outputs[OUTPUT_NUMBER_OR].value     = ((float)val_or  / (float)((1 << CHANNELS) - 1)) * output_volt_uni;
 
     // indicate step direction
     lights[LIGHT_POS_SCAN].setBrightness(scan < 0 ? 0.0 : 0.9);
