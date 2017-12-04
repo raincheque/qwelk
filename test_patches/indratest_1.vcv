@@ -1,0 +1,445 @@
+{
+  "version": "",
+  "modules": [
+    {
+      "plugin": "Qwelk",
+      "model": "Indra",
+      "pos": [
+        690.0,
+        380.0
+      ],
+      "params": [
+        1.0,
+        0.0,
+        0.58800005912780762,
+        0.79800021648406982,
+        0.82799994945526123,
+        0.55950015783309937,
+        0.74400001764297485,
+        0.53699994087219238,
+        0.59099996089935303,
+        0.50250011682510376,
+        0.63749986886978149,
+        0.5774998664855957,
+        0.35249999165534973,
+        0.63900011777877808,
+        0.68999999761581421,
+        0.53099995851516724,
+        0.75900000333786011,
+        0.72449994087219238
+      ]
+    },
+    {
+      "plugin": "Qwelk",
+      "model": "Chaos",
+      "pos": [
+        690.0,
+        0.0
+      ],
+      "params": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "data": {
+        "scan": 1,
+        "states": [
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "Unity",
+      "pos": [
+        1005.0,
+        380.0
+      ],
+      "params": [
+        0.0,
+        0.0
+      ],
+      "data": {
+        "merge": true
+      }
+    },
+    {
+      "plugin": "Core",
+      "model": "AudioInterface",
+      "pos": [
+        1185.0,
+        380.0
+      ],
+      "params": [],
+      "data": {
+        "driver": 8,
+        "device": 0,
+        "sampleRate": 44100.0,
+        "blockSize": 512
+      }
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "VCA",
+      "pos": [
+        1095.0,
+        380.0
+      ],
+      "params": [
+        0.23099996149539948,
+        0.72949981689453125
+      ]
+    },
+    {
+      "plugin": "Qwelk",
+      "model": "Scaler",
+      "pos": [
+        660.0,
+        0.0
+      ],
+      "params": []
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "LFO2",
+      "pos": [
+        540.0,
+        0.0
+      ],
+      "params": [
+        0.0,
+        1.0,
+        -1.4409998655319214,
+        0.0,
+        0.5
+      ]
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "LFO2",
+      "pos": [
+        450.0,
+        0.0
+      ],
+      "params": [
+        0.0,
+        1.0,
+        -1.9240005016326904,
+        3.0,
+        0.5
+      ]
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "VCO2",
+      "pos": [
+        540.0,
+        380.0
+      ],
+      "params": [
+        0.0,
+        1.0,
+        -54.0,
+        3.0,
+        0.0
+      ]
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "LFO2",
+      "pos": [
+        450.0,
+        380.0
+      ],
+      "params": [
+        1.0,
+        1.0,
+        1.1630018949508667,
+        3.0,
+        0.5
+      ]
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "Scope",
+      "pos": [
+        1005.0,
+        0.0
+      ],
+      "params": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -14.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "data": {
+        "lissajous": 0,
+        "external": 0
+      }
+    }
+  ],
+  "wires": [
+    {
+      "outputModuleId": 0,
+      "outputId": 0,
+      "inputModuleId": 2,
+      "inputId": 0
+    },
+    {
+      "outputModuleId": 4,
+      "outputId": 0,
+      "inputModuleId": 3,
+      "inputId": 0
+    },
+    {
+      "outputModuleId": 4,
+      "outputId": 0,
+      "inputModuleId": 3,
+      "inputId": 1
+    },
+    {
+      "outputModuleId": 5,
+      "outputId": 2,
+      "inputModuleId": 5,
+      "inputId": 2
+    },
+    {
+      "outputModuleId": 5,
+      "outputId": 3,
+      "inputModuleId": 1,
+      "inputId": 4
+    },
+    {
+      "outputModuleId": 5,
+      "outputId": 3,
+      "inputModuleId": 1,
+      "inputId": 6
+    },
+    {
+      "outputModuleId": 5,
+      "outputId": 3,
+      "inputModuleId": 1,
+      "inputId": 8
+    },
+    {
+      "outputModuleId": 5,
+      "outputId": 3,
+      "inputModuleId": 1,
+      "inputId": 10
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 6,
+      "inputModuleId": 0,
+      "inputId": 4
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 10,
+      "inputModuleId": 0,
+      "inputId": 6
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 16,
+      "inputModuleId": 0,
+      "inputId": 8
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 20,
+      "inputModuleId": 0,
+      "inputId": 10
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 26,
+      "inputModuleId": 0,
+      "inputId": 12
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 30,
+      "inputModuleId": 0,
+      "inputId": 14
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 36,
+      "inputModuleId": 0,
+      "inputId": 16
+    },
+    {
+      "outputModuleId": 0,
+      "outputId": 1,
+      "inputModuleId": 2,
+      "inputId": 1
+    },
+    {
+      "outputModuleId": 0,
+      "outputId": 2,
+      "inputModuleId": 2,
+      "inputId": 2
+    },
+    {
+      "outputModuleId": 0,
+      "outputId": 3,
+      "inputModuleId": 2,
+      "inputId": 3
+    },
+    {
+      "outputModuleId": 0,
+      "outputId": 4,
+      "inputModuleId": 2,
+      "inputId": 4
+    },
+    {
+      "outputModuleId": 0,
+      "outputId": 5,
+      "inputModuleId": 2,
+      "inputId": 5
+    },
+    {
+      "outputModuleId": 0,
+      "outputId": 6,
+      "inputModuleId": 2,
+      "inputId": 6
+    },
+    {
+      "outputModuleId": 0,
+      "outputId": 7,
+      "inputModuleId": 2,
+      "inputId": 7
+    },
+    {
+      "outputModuleId": 7,
+      "outputId": 0,
+      "inputModuleId": 1,
+      "inputId": 0
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 42,
+      "inputModuleId": 4,
+      "inputId": 5
+    },
+    {
+      "outputModuleId": 4,
+      "outputId": 1,
+      "inputModuleId": 0,
+      "inputId": 0
+    },
+    {
+      "outputModuleId": 6,
+      "outputId": 0,
+      "inputModuleId": 7,
+      "inputId": 0
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 33,
+      "inputModuleId": 0,
+      "inputId": 3
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 28,
+      "inputModuleId": 0,
+      "inputId": 5
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 19,
+      "inputModuleId": 0,
+      "inputId": 1
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 12,
+      "inputModuleId": 0,
+      "inputId": 7
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 32,
+      "inputModuleId": 0,
+      "inputId": 9
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 8,
+      "inputModuleId": 0,
+      "inputId": 11
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 2,
+      "inputModuleId": 0,
+      "inputId": 13
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 39,
+      "inputModuleId": 0,
+      "inputId": 15
+    },
+    {
+      "outputModuleId": 1,
+      "outputId": 0,
+      "inputModuleId": 0,
+      "inputId": 2
+    },
+    {
+      "outputModuleId": 9,
+      "outputId": 0,
+      "inputModuleId": 1,
+      "inputId": 1
+    },
+    {
+      "outputModuleId": 2,
+      "outputId": 2,
+      "inputModuleId": 10,
+      "inputId": 0
+    },
+    {
+      "outputModuleId": 2,
+      "outputId": 2,
+      "inputModuleId": 4,
+      "inputId": 2
+    }
+  ]
+}
