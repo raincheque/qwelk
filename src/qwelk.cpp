@@ -21,6 +21,7 @@ void init(rack::Plugin *p) {
     p->addModel(createModel<WidgetOr>("Qwelk", "OR", "OR", UTILITY_TAG));
     p->addModel(createModel<WidgetNot>("Qwelk", "NOT", "NOT", UTILITY_TAG));
     p->addModel(createModel<WidgetXor>("Qwelk", "XOR", "XOR", UTILITY_TAG));
+    p->addModel(createModel<WidgetIndra>("Qwelk", "Indra", "Indra", OSCILLATOR_TAG));
 
 	// Any other plugin initialization may go here.
 	// As an alternative, consider lazy-loading assets and lookup tables when your module is created to reduce startup times of Rack.
