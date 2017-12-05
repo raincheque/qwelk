@@ -1,0 +1,3 @@
+[ ] Threshold Gate
+[ ] Indra's VCLFO: cycle chaining - freq multiplied - phase offsets
+[ ] VCLPG
