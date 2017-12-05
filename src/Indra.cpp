@@ -1,5 +1,4 @@
-#include "dsp/decimator.hpp"
-#include "dsp/filter.hpp"
+#include "dsp/digital.hpp"
 #include "math.hpp"
 #include "util.hpp"
 #include "qwelk.hpp"
@@ -12,18 +11,20 @@ struct ModuleIndra : Module {
     enum ParamIds {
         PARAM_LFO,
         PARAM_PITCH,
+        PARAM_SPREAD,
         PARAM_CFM, 
         PARAM_AMP = PARAM_CFM + COMPONENTS,
         PARAM_AMPSLEW = PARAM_AMP + COMPONENTS,
         PARAM_PHASESLEW = PARAM_AMPSLEW + COMPONENTS,
-		NUM_PARAMS = PARAM_PHASESLEW + COMPONENTS,
+		NUM_PARAMS = PARAM_PHASESLEW + COMPONENTS
 	};
 	enum InputIds {
         IN_PITCH,
         IN_PHASE,
         IN_AMP = IN_PHASE + COMPONENTS,
         IN_CFM = IN_AMP + COMPONENTS,
-		NUM_INPUTS = IN_CFM + COMPONENTS,
+        IN_RESET = IN_CFM + COMPONENTS,
+		NUM_INPUTS,
 	};
 	enum OutputIds {
         OUT_COMPONENT,
@@ -33,9 +34,11 @@ struct ModuleIndra : Module {
 		NUM_LIGHTS
 	};
 
+    SchmittTrigger trig_reset;
     float amp[COMPONENTS] {};
     float offset[COMPONENTS] {};
     float phase[COMPONENTS] {};
+    
 
     ModuleIndra() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS)
     {
@@ -66,12 +69,17 @@ void ModuleIndra::step()
     const float slew_min = 0.1;
     const float slew_max = 1000.0;
 
+    bool reset = trig_reset.process(inputs[IN_RESET].value);
+    
+    float spread = params[PARAM_SPREAD].value;
+    
     float k = params[PARAM_PITCH].value;
     if (params[PARAM_LFO].value > 0.0)
         k = 54.0 * k;
     else
         k = 128.0 * k;
     float p = k + 12.0 * inputs[IN_PITCH].value;
+    
     for (int i = 0; i < COMPONENTS; ++i) {
         
         if (inputs[IN_PHASE + i].active) {
@@ -94,10 +102,13 @@ void ModuleIndra::step()
         if (inputs[IN_CFM + i].active)
             p += quadraticBipolar(params[PARAM_CFM + i].value) * 12.0 * inputs[IN_CFM + i].value;
         
-        float f = 261.626 * powf(2.0, p / 12.0) * (i + 1);
+        float f = 261.626 * powf(2.0, p / 12.0) * (i * spread + 1);
         phase[i] += f * (1.0 / engineGetSampleRate());
         while (phase[i] > 1.0)
             phase[i] -= 1.0;
+
+        if (reset)
+            phase[i] = offset[i];
 
         float o = offset[i];
         float v = sinf(2 * M_PI * (phase[i] + o));
@@ -112,7 +123,7 @@ struct RoundTinyKnob : RoundBlackKnob {
 		box.size = Vec(20, 20);
 	}
 };
-#define KNOB_RANGE 1.0
+
 WidgetIndra::WidgetIndra() {
     ModuleIndra *module = new ModuleIndra();
     setModule(module);
@@ -133,7 +144,9 @@ WidgetIndra::WidgetIndra() {
     float x = 2.5, y = 30, top = 0;
 
     addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_PITCH));
-    addParam(createParam<RoundTinyKnob>(Vec(x + 30, y), module, ModuleIndra::PARAM_PITCH, -KNOB_RANGE, KNOB_RANGE, 0.0));
+    addInput(createInput<PJ301MPort>(Vec(x + 90, y), module, ModuleIndra::IN_RESET));
+    addParam(createParam<RoundTinyKnob>(Vec(x + 30, y), module, ModuleIndra::PARAM_PITCH, -1.0, 1.0, 0.0));
+    addParam(createParam<RoundTinyKnob>(Vec(x + 120, y), module, ModuleIndra::PARAM_SPREAD, 0.0, 1.0, 1.0));
     addParam(createParam<CKSS>(Vec(x + 60, y), module, ModuleIndra::PARAM_LFO, 0.0, 1.0, 0.0));
 
     x = x + 27;
