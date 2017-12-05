@@ -12,7 +12,9 @@ struct ModuleIndra : Module {
     enum ParamIds {
         PARAM_LFO,
         PARAM_PITCH,
-        PARAM_AMPSLEW,
+        PARAM_CFM, 
+        PARAM_AMP = PARAM_CFM + COMPONENTS,
+        PARAM_AMPSLEW = PARAM_AMP + COMPONENTS,
         PARAM_PHASESLEW = PARAM_AMPSLEW + COMPONENTS,
 		NUM_PARAMS = PARAM_PHASESLEW + COMPONENTS,
 	};
@@ -20,7 +22,8 @@ struct ModuleIndra : Module {
         IN_PITCH,
         IN_PHASE,
         IN_AMP = IN_PHASE + COMPONENTS,
-		NUM_INPUTS = IN_AMP + COMPONENTS,
+        IN_CFM = IN_AMP + COMPONENTS,
+		NUM_INPUTS = IN_CFM + COMPONENTS,
 	};
 	enum OutputIds {
         OUT_COMPONENT,
@@ -68,8 +71,7 @@ void ModuleIndra::step()
         k = 54.0 * k;
     else
         k = 128.0 * k;
-    float p = k + inputs[IN_PITCH].value;
-    float f = 261.626 * powf(2.0, p / 12.0);
+    float p = k + 12.0 * inputs[IN_PITCH].value;
     for (int i = 0; i < COMPONENTS; ++i) {
         
         if (inputs[IN_PHASE + i].active) {
@@ -79,29 +81,21 @@ void ModuleIndra::step()
         }
 
         float a = amp[i];
+        a += params[PARAM_AMP + i].value;
         if (inputs[IN_AMP + i].active) {
             float sa = params[PARAM_AMPSLEW + i].value;
             float ia = clampf(inputs[IN_AMP + i].value, 0, 10.0) / 10.0;
-
-            /*/
-            float shape = 0.25;
-            if (ia > amp[i]) {
-                float s = slew_max * powf(slew_min / slew_max, sa);
-                amp[i] += s * crossf(1.0, (1/10.0) * (ia - amp[i]), shape) / engineGetSampleRate();
-                if (amp[i] > ia)
-                    amp[i] = ia;
-            } else if (ia < amp[i]) {
-                float s = slew_max * powf(slew_min / slew_max, sa);
-                amp[i] -= s * crossf(1.0, (1/10.0) * (amp[i] - ia), shape) / engineGetSampleRate();
-                if (amp[i] < ia)
-                    amp[i] = ia;
-            }
-            /*/
+            ia = ia * (1.0 - params[PARAM_AMP + i].value);
             _slew(amp + i, ia, sa, slew_min, slew_max);
-            //*/
+        } else {
+            a = params[PARAM_AMP + i].value;
         }
 
-        phase[i] += (f * (i + 1)) * (1.0 / engineGetSampleRate());
+        if (inputs[IN_CFM + i].active)
+            p += quadraticBipolar(params[PARAM_CFM + i].value) * 12.0 * inputs[IN_CFM + i].value;
+        
+        float f = 261.626 * powf(2.0, p / 12.0) * (i + 1);
+        phase[i] += f * (1.0 / engineGetSampleRate());
         while (phase[i] > 1.0)
             phase[i] -= 1.0;
 
@@ -136,18 +130,30 @@ WidgetIndra::WidgetIndra() {
     addChild(createScrew<ScrewSilver>(Vec(15, 365)));
     addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
 
-    float x = 2.5, y = 30, top = 30;
-    
-    addParam(createParam<CKSS>(Vec(x + 30, y), module, ModuleIndra::PARAM_LFO, 0.0, 1.0, 0.0));
-    addParam(createParam<RoundTinyKnob>(Vec(x, y), module, ModuleIndra::PARAM_PITCH, -KNOB_RANGE, KNOB_RANGE, 0.0));
-    addInput(createInput<PJ301MPort>(Vec(x, top + y), module, ModuleIndra::IN_PITCH));
+    float x = 2.5, y = 30, top = 0;
 
-    
+    addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_PITCH));
+    addParam(createParam<RoundTinyKnob>(Vec(x + 30, y), module, ModuleIndra::PARAM_PITCH, -KNOB_RANGE, KNOB_RANGE, 0.0));
+    addParam(createParam<CKSS>(Vec(x + 60, y), module, ModuleIndra::PARAM_LFO, 0.0, 1.0, 0.0));
+
+    x = x + 27;
     for (int i = 0; i < COMPONENTS; ++i) {
-        addParam(createParam<RoundTinyKnob>(Vec(x + 30 * i, top + y * 2), module, ModuleIndra::PARAM_PHASESLEW + i, 0, 1, 0));        
-        addInput(createInput<PJ301MPort>(Vec(x + 30 * i, top + y * 3), module, ModuleIndra::IN_PHASE + i));
-        addParam(createParam<RoundTinyKnob>(Vec(x + 30 * i, top + y * 4), module, ModuleIndra::PARAM_AMPSLEW + i, 0, 1, 0));
-        addInput(createInput<PJ301MPort>(Vec(x + 30 * i, top + y * 5), module, ModuleIndra::IN_AMP + i));
-        addOutput(createOutput<PJ301MPort>(Vec(x + 30 * i, top + y * 6), module, ModuleIndra::OUT_COMPONENT + i));
+        y = top + 60;
+        x = 2 + 30 * i;
+        addParam(createParam<RoundTinyKnob>(Vec(x, y), module, ModuleIndra::PARAM_CFM + i, 0, 1, 0));
+        y += 25;
+        addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_CFM + i));
+        y += 30;
+        addParam(createParam<RoundTinyKnob>(Vec(x, y), module, ModuleIndra::PARAM_PHASESLEW + i, 0, 1, 0));
+        y += 25;
+        addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_PHASE + i));
+        y += 30;
+        addParam(createParam<BefacoSlidePot>(Vec(x, y), module, ModuleIndra::PARAM_AMP + i, 0, 1, 1));
+        y += 115;
+        addParam(createParam<RoundTinyKnob>(Vec(x, y), module, ModuleIndra::PARAM_AMPSLEW + i, 0, 1, 0));
+        y += 25;
+        addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_AMP + i));
+        y += 30;
+        addOutput(createOutput<PJ301MPort>(Vec(x, y), module, ModuleIndra::OUT_COMPONENT + i));
     }
 }
