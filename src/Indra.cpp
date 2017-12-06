@@ -10,6 +10,7 @@
 struct ModuleIndra : Module {
     enum ParamIds {
         PARAM_LFO,
+        PARAM_CLEAN,
         PARAM_PITCH,
         PARAM_SPREAD,
         PARAM_CFM, 
@@ -20,6 +21,7 @@ struct ModuleIndra : Module {
 	};
 	enum InputIds {
         IN_PITCH,
+        IN_SPREAD,
         IN_PHASE,
         IN_AMP = IN_PHASE + COMPONENTS,
         IN_CFM = IN_AMP + COMPONENTS,
@@ -70,8 +72,13 @@ void ModuleIndra::step()
     const float slew_max = 1000.0;
 
     bool reset = trig_reset.process(inputs[IN_RESET].value);
+    bool clean = params[PARAM_CLEAN].value > 0.0;
     
-    float spread = params[PARAM_SPREAD].value;
+    float spread;
+    if (inputs[IN_SPREAD].active)
+        spread = (clampf(inputs[IN_SPREAD].value, 0.0, 10.0) / 10.0) * params[PARAM_SPREAD].value;
+    else
+        spread = params[PARAM_SPREAD].value;
     
     float k = params[PARAM_PITCH].value;
     if (params[PARAM_LFO].value > 0.0)
@@ -107,11 +114,21 @@ void ModuleIndra::step()
         while (phase[i] > 1.0)
             phase[i] -= 1.0;
 
-        if (reset)
-            phase[i] = offset[i];
-
         float o = offset[i];
-        float v = sinf(2 * M_PI * (phase[i] + o));
+        
+        if (reset)
+            phase[i] = o;
+
+        float p = 0.0;
+        if (!clean)
+            p = (1 - spread) * phase[0] + phase[i] * spread;
+        else {
+            p = phase[i];
+            _slew(&p, (1 - spread) * phase[0] + phase[i] * spread, spread, slew_min, slew_max);
+            phase[i] = p;
+        }
+
+        float v = sinf(2 * M_PI * (p + o));
         
         outputs[OUT_COMPONENT + i].value = a * 5.0 * v;
     }
@@ -144,10 +161,12 @@ WidgetIndra::WidgetIndra() {
     float x = 2.5, y = 30, top = 0;
 
     addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_PITCH));
-    addInput(createInput<PJ301MPort>(Vec(x + 90, y), module, ModuleIndra::IN_RESET));
     addParam(createParam<RoundTinyKnob>(Vec(x + 30, y), module, ModuleIndra::PARAM_PITCH, -1.0, 1.0, 0.0));
-    addParam(createParam<RoundTinyKnob>(Vec(x + 120, y), module, ModuleIndra::PARAM_SPREAD, 0.0, 1.0, 1.0));
     addParam(createParam<CKSS>(Vec(x + 60, y), module, ModuleIndra::PARAM_LFO, 0.0, 1.0, 0.0));
+    addInput(createInput<PJ301MPort>(Vec(x + 90, y), module, ModuleIndra::IN_RESET));
+    addInput(createInput<PJ301MPort>(Vec(x + 120, y), module, ModuleIndra::IN_SPREAD));
+    addParam(createParam<RoundTinyKnob>(Vec(x + 150, y), module, ModuleIndra::PARAM_SPREAD, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(x + 180, y), module, ModuleIndra::PARAM_CLEAN, 0.0, 1.0, 1.0));
 
     x = x + 27;
     for (int i = 0; i < COMPONENTS; ++i) {
