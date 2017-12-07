@@ -138,7 +138,7 @@ void ModuleIndra::step()
         tv += r;
     }
 
-    outputs[OUT_SUM].value = tv / ta;
+    outputs[OUT_SUM].value = ta > 0 ? tv / ta : 0;
 }
 
 struct RoundTinyKnob : RoundBlackKnob {
