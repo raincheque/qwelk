@@ -30,7 +30,8 @@ struct ModuleIndra : Module {
 	};
 	enum OutputIds {
         OUT_COMPONENT,
-		NUM_OUTPUTS = OUT_COMPONENT + COMPONENTS
+        OUT_SUM = OUT_COMPONENT + COMPONENTS,
+		NUM_OUTPUTS
 	};
 	enum LightIds {
 		NUM_LIGHTS
@@ -86,7 +87,8 @@ void ModuleIndra::step()
     else
         k = 128.0 * k;
     float p = k + 12.0 * inputs[IN_PITCH].value;
-    
+
+    float tv = 0, ta = 0;
     for (int i = 0; i < COMPONENTS; ++i) {
         
         if (inputs[IN_PHASE + i].active) {
@@ -105,6 +107,8 @@ void ModuleIndra::step()
         } else {
             a = params[PARAM_AMP + i].value;
         }
+
+        ta += a;
 
         if (inputs[IN_CFM + i].active)
             p += quadraticBipolar(params[PARAM_CFM + i].value) * 12.0 * inputs[IN_CFM + i].value;
@@ -129,9 +133,12 @@ void ModuleIndra::step()
         }
 
         float v = sinf(2 * M_PI * (p + o));
-        
-        outputs[OUT_COMPONENT + i].value = a * 5.0 * v;
+        float r = a * 5.0 * v;
+        outputs[OUT_COMPONENT + i].value = r;
+        tv += r;
     }
+
+    outputs[OUT_SUM].value = tv / ta;
 }
 
 struct RoundTinyKnob : RoundBlackKnob {
@@ -167,7 +174,8 @@ WidgetIndra::WidgetIndra() {
     addInput(createInput<PJ301MPort>(Vec(x + 120, y), module, ModuleIndra::IN_SPREAD));
     addParam(createParam<RoundTinyKnob>(Vec(x + 150, y), module, ModuleIndra::PARAM_SPREAD, 0.0, 1.0, 1.0));
     addParam(createParam<CKSS>(Vec(x + 180, y), module, ModuleIndra::PARAM_CLEAN, 0.0, 1.0, 1.0));
-
+    addOutput(createOutput<PJ301MPort>(Vec(x + 210, y), module, ModuleIndra::OUT_SUM));
+    
     x = x + 27;
     for (int i = 0; i < COMPONENTS; ++i) {
         y = top + 60;
