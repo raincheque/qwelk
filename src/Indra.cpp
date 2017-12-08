@@ -9,9 +9,9 @@
 
 struct ModuleIndra : Module {
     enum ParamIds {
-        PARAM_LFO,
         PARAM_CLEAN,
         PARAM_PITCH,
+        PARAM_FM,
         PARAM_SPREAD,
         PARAM_CFM, 
         PARAM_AMP = PARAM_CFM + COMPONENTS,
@@ -21,6 +21,7 @@ struct ModuleIndra : Module {
 	};
 	enum InputIds {
         IN_PITCH,
+        IN_FM,
         IN_SPREAD,
         IN_PHASE,
         IN_AMP = IN_PHASE + COMPONENTS,
@@ -82,11 +83,9 @@ void ModuleIndra::step()
         spread = params[PARAM_SPREAD].value;
     
     float k = params[PARAM_PITCH].value;
-    if (params[PARAM_LFO].value > 0.0)
-        k = 54.0 * k;
-    else
-        k = 128.0 * k;
     float p = k + 12.0 * inputs[IN_PITCH].value;
+    if (inputs[IN_FM].active)
+        p += quadraticBipolar(params[PARAM_FM].value) * 12.0 * inputs[IN_FM].value;
 
     float tv = 0, ta = 0;
     for (int i = 0; i < COMPONENTS; ++i) {
@@ -134,17 +133,33 @@ void ModuleIndra::step()
 
         float v = sinf(2 * M_PI * (p + o));
         float r = a * 5.0 * v;
-        outputs[OUT_COMPONENT + i].value = r;
-        tv += r;
+        outputs[OUT_COMPONENT + i].value = v * 5.0;
+        tv += a * v;
     }
 
-    outputs[OUT_SUM].value = ta > 0 ? tv / ta : 0;
+    outputs[OUT_SUM].value = (ta > 0 ? tv / ta : 0) * 5.0;
 }
 
 struct RoundTinyKnob : RoundBlackKnob {
 	RoundTinyKnob()
     {
 		box.size = Vec(20, 20);
+	}
+};
+
+struct SlidePot : SVGSlider {
+	SlidePot() {
+        const float _h = 60;
+		Vec margin = Vec(2.5, 2.5);
+		maxHandlePos = Vec(-1, -2).plus(margin);
+		minHandlePos = Vec(-1, _h-20).plus(margin);
+		background->svg = SVG::load(assetPlugin(plugin, "res/SlidePot.svg"));
+		background->wrap();
+        background->box.size = Vec(background->box.size.x, _h);
+		background->box.pos = margin;
+		box.size = background->box.size.plus(margin.mult(2));
+		handle->svg = SVG::load(assetPlugin(plugin, "res/SlidePotHandle.svg"));
+		handle->wrap();
 	}
 };
 
@@ -156,44 +171,54 @@ WidgetIndra::WidgetIndra() {
     {
         SVGPanel *panel = new SVGPanel();
         panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Blank_16.svg")));
+        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Indra.svg")));
         addChild(panel);
     }
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
+    addChild(createScrew<ScrewSilver>(Vec(10, 0)));
+    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 20, 0)));
+    addChild(createScrew<ScrewSilver>(Vec(10, 365)));
+    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 20, 365)));
 
-    float x = 2.5, y = 30, top = 0;
+    const float knob_x = 3;
+    float x = 2.5, y = 42, top = 0;
 
-    addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_PITCH));
-    addParam(createParam<RoundTinyKnob>(Vec(x + 30, y), module, ModuleIndra::PARAM_PITCH, -1.0, 1.0, 0.0));
-    addParam(createParam<CKSS>(Vec(x + 60, y), module, ModuleIndra::PARAM_LFO, 0.0, 1.0, 0.0));
-    addInput(createInput<PJ301MPort>(Vec(x + 90, y), module, ModuleIndra::IN_RESET));
-    addInput(createInput<PJ301MPort>(Vec(x + 120, y), module, ModuleIndra::IN_SPREAD));
-    addParam(createParam<RoundTinyKnob>(Vec(x + 150, y), module, ModuleIndra::PARAM_SPREAD, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(x + 180, y), module, ModuleIndra::PARAM_CLEAN, 0.0, 1.0, 1.0));
-    addOutput(createOutput<PJ301MPort>(Vec(x + 210, y), module, ModuleIndra::OUT_SUM));
+    addInput(createInput<PJ301MPort>    (Vec(x,              y), module, ModuleIndra::IN_PITCH));
+    addParam(createParam<RoundTinyKnob> (Vec(x + knob_x, y - 22), module, ModuleIndra::PARAM_PITCH, -54.0, 54.0, 0.0));
     
-    x = x + 27;
+    addInput(createInput<PJ301MPort>    (Vec(x +  50,        y), module, ModuleIndra::IN_FM));
+    addParam(createParam<RoundTinyKnob> (Vec(x +  50 + knob_x,   y - 22), module, ModuleIndra::PARAM_FM, 0.0, 1.0, 0.0));
+    
+    addInput(createInput<PJ301MPort>    (Vec(x +  105,        y), module, ModuleIndra::IN_RESET));
+
+    addInput(createInput<PJ301MPort>    (Vec(x +  157,        y), module, ModuleIndra::IN_SPREAD));
+    addParam(createParam<RoundTinyKnob> (Vec(x +  157 + knob_x,   y - 22), module, ModuleIndra::PARAM_SPREAD, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>          (Vec(x +  205,   y - 22), module, ModuleIndra::PARAM_CLEAN, 0.0, 1.0, 1.0));
+
+    auto sum_pos = Vec(box.size.x / 2 - 12.5, 350);
+    addOutput(createOutput<PJ301MPort>(sum_pos, module, ModuleIndra::OUT_SUM));
+
+    x = x + 30;
     for (int i = 0; i < COMPONENTS; ++i) {
-        y = top + 60;
+        y = top + 80;
         x = 2 + 30 * i;
-        addParam(createParam<RoundTinyKnob>(Vec(x, y), module, ModuleIndra::PARAM_CFM + i, 0, 1, 0));
-        y += 25;
+        addParam(createParam<RoundTinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_CFM + i, 0, 1, 0));
+        y += 22;
         addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_CFM + i));
-        y += 30;
-        addParam(createParam<RoundTinyKnob>(Vec(x, y), module, ModuleIndra::PARAM_PHASESLEW + i, 0, 1, 0));
-        y += 25;
+        y += 38;
+        
+        addParam(createParam<RoundTinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_PHASESLEW + i, 0, 1, 0));
+        y += 22;
         addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_PHASE + i));
-        y += 30;
-        addParam(createParam<BefacoSlidePot>(Vec(x, y), module, ModuleIndra::PARAM_AMP + i, 0, 1, 1));
-        y += 115;
-        addParam(createParam<RoundTinyKnob>(Vec(x, y), module, ModuleIndra::PARAM_AMPSLEW + i, 0, 1, 0));
-        y += 25;
+        y += 35;
+        
+        addParam(createParam<SlidePot>(Vec(x + 5, y), module, ModuleIndra::PARAM_AMP + i, 0, 1, 1));
+        y += 63;
+        addParam(createParam<RoundTinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_AMPSLEW + i, 0, 1, 0));
+        y += 22;
         addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_AMP + i));
         y += 30;
+        
         addOutput(createOutput<PJ301MPort>(Vec(x, y), module, ModuleIndra::OUT_COMPONENT + i));
     }
 }
