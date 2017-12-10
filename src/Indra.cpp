@@ -38,6 +38,7 @@ struct ModuleIndra : Module {
 		NUM_LIGHTS
 	};
 
+    bool attenuate_component_outs = false;
     SchmittTrigger trig_reset;
     float amp[COMPONENTS] {};
     float offset[COMPONENTS] {};
@@ -132,8 +133,7 @@ void ModuleIndra::step()
         }
 
         float v = sinf(2 * M_PI * (p + o));
-        float r = a * 5.0 * v;
-        outputs[OUT_COMPONENT + i].value = v * 5.0;
+        outputs[OUT_COMPONENT + i].value = v * 5.0 * (attenuate_component_outs ? a : 1.0);
         tv += a * v;
     }
 
@@ -221,4 +221,34 @@ WidgetIndra::WidgetIndra() {
         
         addOutput(createOutput<PJ301MPort>(Vec(x, y), module, ModuleIndra::OUT_COMPONENT + i));
     }
+}
+
+struct MenuItemAttenuateComponentOuts : MenuItem {
+    ModuleIndra *indra;
+    void onAction(EventAction &e) override
+    {
+        indra->attenuate_component_outs ^= true;
+    }
+    void step () override
+    {
+        rightText = (indra->attenuate_component_outs) ? "✔" : "";
+    }
+};
+
+Menu *WidgetIndra::createContextMenu()
+{
+    Menu *menu = ModuleWidget::createContextMenu();
+
+    MenuLabel *spacer = new MenuLabel();
+    menu->pushChild(spacer);
+
+    ModuleIndra *indra = dynamic_cast<ModuleIndra *>(module);
+    assert(indra);
+
+    MenuItemAttenuateComponentOuts *item = new MenuItemAttenuateComponentOuts();
+    item->text = "Attenuate Component Outs";
+    item->indra = indra;
+    menu->pushChild(item);
+
+    return menu;
 }
