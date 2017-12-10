@@ -38,4 +38,5 @@ struct WidgetXor : ModuleWidget {
 
 struct WidgetIndra : ModuleWidget {
     WidgetIndra();
+    Menu *createContextMenu() override;
 };
