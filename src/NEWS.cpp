@@ -57,80 +57,54 @@ void ModuleNews::step()
 
     // read the N-E-W-S
     int cy = GHEIGHT / 2, cx = GWIDTH / 2;
-    if (mode) {
-        for (int i = 0; i < up; ++i) {
+
+    int w = 0;
+    while (w++ < (mode ? 1 : 8)) {
+        int cond = mode ? (up) : (((up >> w) & 1) == 1);
+        while (cond-- > 0) {
             cy = (cy - 1) >= 0 ? cy - 1 : GHEIGHT - 1;
             if (gatemode)
                 grid[cx + cy * GWIDTH] ^= 1;
             else
                 grid[cx + cy * GWIDTH] += 1;
         }
-        for (int i = 0; i < rt; ++i) {
+        cond = (mode ? (rt) : (((rt >> w) & 1) == 1));
+        while (cond-- > 0) {
             cx = (cx + 1) < GWIDTH ? cx + 1 : 0;
             if (gatemode)
                 grid[cx + cy * GWIDTH] ^= 1;
             else
                 grid[cx + cy * GWIDTH] += 1;
         }
-        for (int i = 0; i < dn; ++i) {
+        cond = (mode ? (dn) : (((dn >> w) & 1) == 1));
+        while (cond-- > 0) {
             cy = (cy + 1) < GHEIGHT ? cy + 1 : 0;
             if (gatemode)
                 grid[cx + cy * GWIDTH] ^= 1;
             else
                 grid[cx + cy * GWIDTH] += 1;
         }
-        for (int i = 0; i < lt; ++i) {
+        cond = (mode ? (lt) : (((lt >> w) & 1) == 1));
+        while (cond-- > 0) {
             cx = (cx - 1) >= 0 ? cx - 1 : GWIDTH - 1;
             if (gatemode)
                 grid[cx + cy * GWIDTH] ^= 1;
             else
                 grid[cx + cy * GWIDTH] += 1;
         }
-    } else {
-        for (int i = 0; i < 8; ++i) {
-            if (((up >> i) & 1) == 1) {
-                cy = (cy - 1) >= 0 ? cy - 1 : GHEIGHT - 1;
-                if (gatemode)
-                    grid[cx + cy * GWIDTH] ^= 1;
-                else
-                    grid[cx + cy * GWIDTH] += 1;
-            }
-            if (((rt >> i) & 1) == 1) {
-                cx = (cx + 1) < GWIDTH ? cx + 1 : 0;
-                if (gatemode)
-                    grid[cx + cy * GWIDTH] ^= 1;
-                else
-                    grid[cx + cy * GWIDTH] += 1;
-            }
-            if (((dn >> i) & 1) == 1) {
-                cy = (cy + 1) < GHEIGHT ? cy + 1 : 0;
-                if (gatemode)
-                    grid[cx + cy * GWIDTH] ^= 1;
-                else
-                    grid[cx + cy * GWIDTH] += 1;
-            }
-            if (((lt >> i) & 1) == 1) {
-                cx = (cx - 1) >= 0 ? cx - 1 : GWIDTH - 1;
-                if (gatemode)
-                    grid[cx + cy * GWIDTH] ^= 1;
-                else
-                    grid[cx + cy * GWIDTH] += 1;
-            }
-        }
     }
 
     byte intensity = 4;
-
+    
     // light up cells and output
     for (int y = 0; y < GHEIGHT; ++y)
         for (int x = 0; x < GWIDTH; ++x) {
             int i = x + y * GWIDTH;
+            byte r  = grid[i] * intensity - 1;
             float v = gatemode
                       ? (grid[i] ? 1 : 0)
-                      : ((byte)(grid[i] * intensity - 1) / 255.0);
-            float l = gatemode
-                      ? (grid[i] ? 0.9 : 0.0)
-                      : ((byte)(grid[i] * intensity - 1) / 255.0);
+                      : ((byte)r / 255.0);
+            float l = v * 0.9;
             lights[LIGHT_GRID + i].setBrightness(l);
             outputs[OUT_CELL + i].value = 5.0 * v;
         }
@@ -169,11 +143,11 @@ WidgetNews::WidgetNews()
     addChild(createScrew<ScrewSilver>(Vec(15, 365)));
     addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
     
-    addInput(createInput<PJ301MPort>(Vec(15, 30), module, ModuleNews::IN_NEWS));
-    addParam(createParam<RoundTinyKnob> (Vec(50, 30), module, ModuleNews::PARAM_WIDTH, 1e-6, 10000.0, 1.0));
-    addParam(createParam<CKSS>(Vec(75, 30), module, ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(100, 30), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
-    
+    addInput(createInput<PJ301MPort>(Vec(10, 30), module, ModuleNews::IN_NEWS));
+    addParam(createParam<RoundTinyKnob>(Vec(45, 30), module, ModuleNews::PARAM_WIDTH, 1e-6, 10000.0, 1.0));
+    addParam(createParam<CKSS>(Vec(70, 30), module, ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(90, 30), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
+
     for (int y = 0; y < GHEIGHT; ++y)
         for (int x = 0; x < GWIDTH; ++x) {
             int i = x + y * GWIDTH;
