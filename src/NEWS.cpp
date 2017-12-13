@@ -3,7 +3,8 @@
 #include "qwelk.hpp"
 
 
-#define GSIZE 8
+#define GWIDTH  4
+#define GHEIGHT 8
 
 
 typedef unsigned char byte;
@@ -11,6 +12,8 @@ typedef unsigned char byte;
 
 struct ModuleNews : Module {
     enum ParamIds {
+        PARAM_MODE,
+        PARAM_GATEMODE,
         PARAM_WIDTH,
         NUM_PARAMS
     };
@@ -19,14 +22,15 @@ struct ModuleNews : Module {
         NUM_INPUTS
     };
     enum OutputIds {
-        NUM_OUTPUTS
+        OUT_CELL,
+        NUM_OUTPUTS = OUT_CELL + GWIDTH * GHEIGHT
     };
     enum LightIds {
         LIGHT_GRID,
-        NUM_LIGHTS = LIGHT_GRID + GSIZE * GSIZE
+        NUM_LIGHTS = LIGHT_GRID + GWIDTH * GHEIGHT
     };
 
-    byte grid[GSIZE * GSIZE] {};    
+    byte grid[GWIDTH * GHEIGHT] {};    
     
     ModuleNews() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     void step() override;
@@ -34,44 +38,105 @@ struct ModuleNews : Module {
 
 void ModuleNews::step()
 {
-    float width = params[PARAM_WIDTH].value;
-    float news = width * inputs[IN_NEWS].value;
+    bool    mode        = params[PARAM_MODE].value > 0.0;
+    bool    gatemode    = params[PARAM_GATEMODE].value > 0.0;
+    float   width       = params[PARAM_WIDTH].value;
+    float   news        = width * inputs[IN_NEWS].value;
+
     unsigned key = (unsigned)(*((int *)&news));
 
-    for (int i = 0; i < GSIZE * GSIZE; ++i)
+    // reset grid
+    for (int i = 0; i < GWIDTH * GHEIGHT; ++i)
         grid[i] = 0;
 
+    // extract N-E-W-S info
     int up = (key >> 24) & 0xFF;
     int rt = (key >> 16) & 0xFF;
     int dn = (key >>  8) & 0xFF;
     int lt = (key      ) & 0xFF;
 
-    int cy = GSIZE / 2, cx = GSIZE / 2;
-    for (int i = 0; i < up; ++i) {
-        cy = (cy - 1) >= 0 ? cy - 1 : GSIZE - 1;
-        grid[cx + cy * GSIZE] ^= 1;
-    }
-    for (int i = 0; i < rt; ++i) {
-        cx = (cx + 1) < GSIZE ? cx + 1 : 0;
-        grid[cx + cy * GSIZE] ^= 1;
-    }
-    for (int i = 0; i < dn; ++i) {
-        cy = (cy + 1) < GSIZE ? cy + 1 : 0;
-        grid[cx + cy * GSIZE] ^= 1;
-    }
-    for (int i = 0; i < lt; ++i) {
-        cx = (cx - 1) >= 0 ? cx - 1 : GSIZE;
-        grid[cx + cy * GSIZE] ^= 1;
-    }
-    
-    // blink according to state
-    for (int y = 0; y < GSIZE; ++y)
-        for (int x = 0; x < GSIZE; ++x) {
-            int i = x + y * GSIZE;
-            lights[LIGHT_GRID + i].setBrightness(grid[i] ? 0.9 : 0.0);
+    // read the N-E-W-S
+    int cy = GHEIGHT / 2, cx = GWIDTH / 2;
+    if (mode) {
+        for (int i = 0; i < up; ++i) {
+            cy = (cy - 1) >= 0 ? cy - 1 : GHEIGHT - 1;
+            if (gatemode)
+                grid[cx + cy * GWIDTH] ^= 1;
+            else
+                grid[cx + cy * GWIDTH] += 1;
         }
-}
+        for (int i = 0; i < rt; ++i) {
+            cx = (cx + 1) < GWIDTH ? cx + 1 : 0;
+            if (gatemode)
+                grid[cx + cy * GWIDTH] ^= 1;
+            else
+                grid[cx + cy * GWIDTH] += 1;
+        }
+        for (int i = 0; i < dn; ++i) {
+            cy = (cy + 1) < GHEIGHT ? cy + 1 : 0;
+            if (gatemode)
+                grid[cx + cy * GWIDTH] ^= 1;
+            else
+                grid[cx + cy * GWIDTH] += 1;
+        }
+        for (int i = 0; i < lt; ++i) {
+            cx = (cx - 1) >= 0 ? cx - 1 : GWIDTH - 1;
+            if (gatemode)
+                grid[cx + cy * GWIDTH] ^= 1;
+            else
+                grid[cx + cy * GWIDTH] += 1;
+        }
+    } else {
+        for (int i = 0; i < 8; ++i) {
+            if (((up >> i) & 1) == 1) {
+                cy = (cy - 1) >= 0 ? cy - 1 : GHEIGHT - 1;
+                if (gatemode)
+                    grid[cx + cy * GWIDTH] ^= 1;
+                else
+                    grid[cx + cy * GWIDTH] += 1;
+            }
+            if (((rt >> i) & 1) == 1) {
+                cx = (cx + 1) < GWIDTH ? cx + 1 : 0;
+                if (gatemode)
+                    grid[cx + cy * GWIDTH] ^= 1;
+                else
+                    grid[cx + cy * GWIDTH] += 1;
+            }
+            if (((dn >> i) & 1) == 1) {
+                cy = (cy + 1) < GHEIGHT ? cy + 1 : 0;
+                if (gatemode)
+                    grid[cx + cy * GWIDTH] ^= 1;
+                else
+                    grid[cx + cy * GWIDTH] += 1;
+            }
+            if (((lt >> i) & 1) == 1) {
+                cx = (cx - 1) >= 0 ? cx - 1 : GWIDTH - 1;
+                if (gatemode)
+                    grid[cx + cy * GWIDTH] ^= 1;
+                else
+                    grid[cx + cy * GWIDTH] += 1;
+            }
+        }
+    }
 
+    byte intensity = 4;
+
+    // light up cells and output
+    for (int y = 0; y < GHEIGHT; ++y)
+        for (int x = 0; x < GWIDTH; ++x) {
+            int i = x + y * GWIDTH;
+            float v = gatemode
+                      ? (grid[i] ? 1 : 0)
+                      : ((byte)(grid[i] * intensity - 1) / 255.0);
+            float l = gatemode
+                      ? (grid[i] ? 0.9 : 0.0)
+                      : ((byte)(grid[i] * intensity - 1) / 255.0);
+            lights[LIGHT_GRID + i].setBrightness(l);
+            outputs[OUT_CELL + i].value = 5.0 * v;
+        }
+
+}
+#define LIGHT_SIZE 10
 struct RoundTinyKnob : RoundBlackKnob {
 	RoundTinyKnob()
     {
@@ -82,7 +147,7 @@ template <typename _BASE>
 struct CellLight : _BASE {
     CellLight()
     {
-        this->box.size = mm2px(Vec(6, 6));
+        this->box.size = mm2px(Vec(LIGHT_SIZE, LIGHT_SIZE));
     }
 };
 
@@ -91,7 +156,7 @@ WidgetNews::WidgetNews()
     ModuleNews *module = new ModuleNews();
     setModule(module);
 
-    box.size = Vec(16 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
+    box.size = Vec(9 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
     {
         SVGPanel *panel = new SVGPanel();
         panel->box.size = box.size;
@@ -106,10 +171,13 @@ WidgetNews::WidgetNews()
     
     addInput(createInput<PJ301MPort>(Vec(15, 30), module, ModuleNews::IN_NEWS));
     addParam(createParam<RoundTinyKnob> (Vec(50, 30), module, ModuleNews::PARAM_WIDTH, 1e-6, 10000.0, 1.0));
+    addParam(createParam<CKSS>(Vec(75, 30), module, ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(100, 30), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
     
-    for (int y = 0; y < GSIZE; ++y)
-        for (int x = 0; x < GSIZE; ++x) {
-            int i = x + y * GSIZE;
-            addChild(createLight<CellLight<GreenLight>>(Vec(15 + x * 25, 60 + y * 25), module, ModuleNews::LIGHT_GRID + i));
+    for (int y = 0; y < GHEIGHT; ++y)
+        for (int x = 0; x < GWIDTH; ++x) {
+            int i = x + y * GWIDTH;
+            addChild(createLight<CellLight<GreenLight>>(Vec(7 + x * 30, 60 + y * 30), module, ModuleNews::LIGHT_GRID + i));
+            addOutput(createOutput<PJ301MPort>(Vec(7 + x * 30 + 2, 60 + y * 30 + 2), module, ModuleNews::OUT_CELL + i));
         }
 }
