@@ -5,7 +5,7 @@
 
 #define GWIDTH  4
 #define GHEIGHT 8
-
+#define LIGHT_SIZE 10
 
 typedef unsigned char byte;
 
@@ -16,6 +16,7 @@ struct ModuleNews : Module {
         PARAM_GATEMODE,
         PARAM_ROUND,
         PARAM_CLAMP,
+        PARAM_INTENSITY,
         NUM_PARAMS
     };
     enum InputIds {
@@ -43,8 +44,9 @@ void ModuleNews::step()
     bool    gatemode    = params[PARAM_GATEMODE].value > 0.0;
     bool    round       = params[PARAM_ROUND].value == 0.0;
     bool    clamp       = params[PARAM_CLAMP].value == 0.0;
+    byte    intensity   = (byte)(floor(params[PARAM_INTENSITY].value));
     float   news        = inputs[IN_NEWS].value;
-
+    
     if (round)
         news = (int)news;
 
@@ -99,9 +101,7 @@ void ModuleNews::step()
         }
     }
 
-    byte intensity = 4;
-    
-    // light up cells and output
+    // output
     for (int y = 0; y < GHEIGHT; ++y)
         for (int x = 0; x < GWIDTH; ++x) {
             int i = x + y * GWIDTH;
@@ -116,15 +116,14 @@ void ModuleNews::step()
             
             float l = v * 0.9;
             
-            lights[LIGHT_GRID + i].setBrightness(l);
-            
             outputs[OUT_CELL + i].value = 5.0 * v;
+            lights[LIGHT_GRID + i].setBrightness(l);
         }
 
 }
-#define LIGHT_SIZE 10
-struct RoundTinyKnob : RoundBlackKnob {
-	RoundTinyKnob()
+
+struct TinyKnob : RoundBlackKnob {
+	TinyKnob()
     {
 		box.size = Vec(20, 20);
 	}
@@ -154,17 +153,18 @@ WidgetNews::WidgetNews()
     addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 0)));
     addChild(createScrew<ScrewSilver>(Vec(15, 365)));
     addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
-    
-    addInput(createInput<PJ301MPort>(Vec(10, 30), module, ModuleNews::IN_NEWS));
-    addParam(createParam<CKSS>(Vec(40, 30), module, ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(60, 30), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(80, 30), module, ModuleNews::PARAM_ROUND, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(100, 30), module, ModuleNews::PARAM_CLAMP, 0.0, 1.0, 1.0));
+
+    addParam(createParam<TinyKnob>(Vec(10   , 30), module, ModuleNews::PARAM_INTENSITY, 1.0, 255.0, 4.0));
+    addParam(createParam<CKSS>(Vec(40   , 30), module, ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(60   , 30), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(80   , 30), module, ModuleNews::PARAM_ROUND, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(100  , 30), module, ModuleNews::PARAM_CLAMP, 0.0, 1.0, 1.0));
+    addInput(createInput<PJ301MPort>(Vec(10, 60), module, ModuleNews::IN_NEWS));
 
     for (int y = 0; y < GHEIGHT; ++y)
         for (int x = 0; x < GWIDTH; ++x) {
             int i = x + y * GWIDTH;
-            addChild(createLight<CellLight<GreenLight>>(Vec(7 + x * 30, 60 + y * 30), module, ModuleNews::LIGHT_GRID + i));
-            addOutput(createOutput<PJ301MPort>(Vec(7 + x * 30 + 2, 60 + y * 30 + 2), module, ModuleNews::OUT_CELL + i));
+            addChild(createLight<CellLight<GreenLight>>(Vec(7 + x * 30, 100 + y * 30), module, ModuleNews::LIGHT_GRID + i));
+            addOutput(createOutput<PJ301MPort>(Vec(7 + x * 30 + 2, 100 + y * 30 + 2), module, ModuleNews::OUT_CELL + i));
         }
 }
