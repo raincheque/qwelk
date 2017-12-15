@@ -17,7 +17,8 @@ struct ModuleIndra : Module {
         PARAM_AMP = PARAM_CFM + COMPONENTS,
         PARAM_AMPSLEW = PARAM_AMP + COMPONENTS,
         PARAM_PHASESLEW = PARAM_AMPSLEW + COMPONENTS,
-		NUM_PARAMS = PARAM_PHASESLEW + COMPONENTS
+        PARAM_WRAP = PARAM_PHASESLEW + COMPONENTS,
+		NUM_PARAMS
 	};
 	enum InputIds {
         IN_PITCH,
@@ -27,7 +28,8 @@ struct ModuleIndra : Module {
         IN_AMP = IN_PHASE + COMPONENTS,
         IN_CFM = IN_AMP + COMPONENTS,
         IN_RESET = IN_CFM + COMPONENTS,
-		NUM_INPUTS,
+        IN_WRAP,
+		NUM_INPUTS
 	};
 	enum OutputIds {
         OUT_COMPONENT,
@@ -82,7 +84,10 @@ void ModuleIndra::step()
         spread = (clampf(inputs[IN_SPREAD].value, 0.0, 10.0) / 10.0) * params[PARAM_SPREAD].value;
     else
         spread = params[PARAM_SPREAD].value;
-    
+
+    int wrap = (int)params[PARAM_WRAP].value;
+    wrap = wrap + (int)((inputs[IN_WRAP].value / 10.0) * (float)COMPONENTS);
+               
     float k = params[PARAM_PITCH].value;
     float p = k + 12.0 * inputs[IN_PITCH].value;
     if (inputs[IN_FM].active)
@@ -90,6 +95,7 @@ void ModuleIndra::step()
 
     float tv = 0, ta = 0, ma = 0;
     for (int i = 0; i < COMPONENTS; ++i) {
+        int wrapped = (i + wrap) % COMPONENTS;
         
         if (inputs[IN_PHASE + i].active) {
             float sa = params[PARAM_PHASESLEW + i].value;
@@ -118,7 +124,7 @@ void ModuleIndra::step()
         if (inputs[IN_CFM + i].active)
             p += quadraticBipolar(params[PARAM_CFM + i].value) * 12.0 * inputs[IN_CFM + i].value;
         
-        float f = 261.626 * powf(2.0, p / 12.0) * (i * spread + 1);
+        float f = 261.626 * powf(2.0, p / 12.0) * (wrapped * spread + 1);
         phase[i] += f * (1.0 / engineGetSampleRate());
         while (phase[i] > 1.0)
             phase[i] -= 1.0;
@@ -188,17 +194,19 @@ WidgetIndra::WidgetIndra() {
     const float knob_x = 3;
     float x = 2.5, y = 42, top = 0;
 
-    addInput(createInput<PJ301MPort>    (Vec(x,              y), module, ModuleIndra::IN_PITCH));
-    addParam(createParam<RoundTinyKnob> (Vec(x + knob_x, y - 22), module, ModuleIndra::PARAM_PITCH, -54.0, 54.0, 0.0));
+    addInput(createInput<PJ301MPort>    (Vec(x,                 y), module, ModuleIndra::IN_PITCH));
+    addParam(createParam<RoundTinyKnob> (Vec(x + knob_x,        y - 22), module, ModuleIndra::PARAM_PITCH, -54.0, 54.0, 0.0));
     
-    addInput(createInput<PJ301MPort>    (Vec(x +  50,        y), module, ModuleIndra::IN_FM));
-    addParam(createParam<RoundTinyKnob> (Vec(x +  50 + knob_x,   y - 22), module, ModuleIndra::PARAM_FM, 0.0, 1.0, 0.0));
+    addInput(createInput<PJ301MPort>    (Vec(x +  50,           y), module, ModuleIndra::IN_FM));
+    addParam(createParam<RoundTinyKnob> (Vec(x +  50 + knob_x,  y - 22), module, ModuleIndra::PARAM_FM, 0.0, 1.0, 0.0));
     
-    addInput(createInput<PJ301MPort>    (Vec(x +  105,        y), module, ModuleIndra::IN_RESET));
+    addInput(createInput<PJ301MPort>    (Vec(x +  105,          y), module, ModuleIndra::IN_RESET));
 
-    addInput(createInput<PJ301MPort>    (Vec(x +  157,        y), module, ModuleIndra::IN_SPREAD));
-    addParam(createParam<RoundTinyKnob> (Vec(x +  157 + knob_x,   y - 22), module, ModuleIndra::PARAM_SPREAD, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>          (Vec(x +  205,   y - 22), module, ModuleIndra::PARAM_CLEAN, 0.0, 1.0, 1.0));
+    addInput(createInput<PJ301MPort>    (Vec(x +  157,          y), module, ModuleIndra::IN_SPREAD));
+    addParam(createParam<RoundTinyKnob> (Vec(x +  157 + knob_x, y - 22), module, ModuleIndra::PARAM_SPREAD, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>          (Vec(x +  195,          y - 22), module, ModuleIndra::PARAM_CLEAN, 0.0, 1.0, 1.0));
+    addInput(createInput<PJ301MPort>    (Vec(x +  210,          y), module, ModuleIndra::IN_WRAP));
+    addParam(createParam<RoundTinyKnob> (Vec(x +  210 + knob_x, y - 22), module, ModuleIndra::PARAM_WRAP, 0.0, COMPONENTS - 1, 0.0));
 
     auto sum_pos = Vec(box.size.x / 2 - 12.5, 350);
     addOutput(createOutput<PJ301MPort>(sum_pos, module, ModuleIndra::OUT_SUM));
