@@ -17,6 +17,7 @@ struct ModuleNews : Module {
         PARAM_ROUND,
         PARAM_CLAMP,
         PARAM_INTENSITY,
+        PARAM_WRAP,
         NUM_PARAMS
     };
     enum InputIds {
@@ -33,7 +34,7 @@ struct ModuleNews : Module {
     };
 
     byte grid[GWIDTH * GHEIGHT] {};    
-    
+
     ModuleNews() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     void step() override;
 };
@@ -45,12 +46,18 @@ void ModuleNews::step()
     bool    round       = params[PARAM_ROUND].value == 0.0;
     bool    clamp       = params[PARAM_CLAMP].value == 0.0;
     byte    intensity   = (byte)(floor(params[PARAM_INTENSITY].value));
+    byte    wrap        = (byte)(floor(params[PARAM_WRAP].value));
     float   news        = inputs[IN_NEWS].value;
+
+    unsigned bits = *(reinterpret_cast<unsigned *>(&news));
+    bits = (bits << wrap) | (bits >> (32 - wrap));
+
+    news = *((float *)&bits);
     
     if (round)
         news = (int)news;
 
-    unsigned key = (unsigned)(*((int *)&news));
+    unsigned key = *(reinterpret_cast<unsigned *>(&news));
 
     // reset grid
     for (int i = 0; i < GWIDTH * GHEIGHT; ++i)
@@ -155,12 +162,13 @@ WidgetNews::WidgetNews()
     addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
 
     addParam(createParam<TinyKnob>(Vec(10   , 30), module, ModuleNews::PARAM_INTENSITY, 1.0, 255.0, 4.0));
-    addParam(createParam<CKSS>(Vec(40   , 30), module, ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(60   , 30), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(80   , 30), module, ModuleNews::PARAM_ROUND, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(100  , 30), module, ModuleNews::PARAM_CLAMP, 0.0, 1.0, 1.0));
+    addParam(createParam<TinyKnob>(Vec(40   , 30), module, ModuleNews::PARAM_WRAP, 1.0, 31.0, 0.0));
+    addParam(createParam<CKSS>(Vec(40       , 60), module, ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(60       , 60), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(80       , 60), module, ModuleNews::PARAM_ROUND, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(100      , 60), module, ModuleNews::PARAM_CLAMP, 0.0, 1.0, 1.0));
     addInput(createInput<PJ301MPort>(Vec(10, 60), module, ModuleNews::IN_NEWS));
-
+    
     for (int y = 0; y < GHEIGHT; ++y)
         for (int x = 0; x < GWIDTH; ++x) {
             int i = x + y * GWIDTH;
