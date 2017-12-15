@@ -40,7 +40,3 @@ struct WidgetIndra : ModuleWidget {
     WidgetIndra();
     Menu *createContextMenu() override;
 };
-
-struct WidgetNormal : ModuleWidget {
-    WidgetNormal();
-};
