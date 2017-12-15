@@ -88,7 +88,7 @@ void ModuleIndra::step()
     if (inputs[IN_FM].active)
         p += quadraticBipolar(params[PARAM_FM].value) * 12.0 * inputs[IN_FM].value;
 
-    float tv = 0, ta = 0;
+    float tv = 0, ta = 0, ma = 0;
     for (int i = 0; i < COMPONENTS; ++i) {
         
         if (inputs[IN_PHASE + i].active) {
@@ -104,11 +104,16 @@ void ModuleIndra::step()
             float ia = clampf(inputs[IN_AMP + i].value, 0, 10.0) / 10.0;
             ia = ia * (1.0 - params[PARAM_AMP + i].value);
             _slew(amp + i, ia, sa, slew_min, slew_max);
+            
+            //a = amp[i];
+            
         } else {
             a = params[PARAM_AMP + i].value;
         }
-
+        
         ta += a;
+        if (ma < fabs(a))
+            ma = fabs(a);
 
         if (inputs[IN_CFM + i].active)
             p += quadraticBipolar(params[PARAM_CFM + i].value) * 12.0 * inputs[IN_CFM + i].value;
@@ -137,7 +142,7 @@ void ModuleIndra::step()
         tv += a * v;
     }
 
-    outputs[OUT_SUM].value = (ta > 0 ? tv / ta : 0) * 5.0;
+    outputs[OUT_SUM].value = (ta > 0 ? tv / ta : 0) * 5.0 * ma;
 }
 
 struct RoundTinyKnob : RoundBlackKnob {
