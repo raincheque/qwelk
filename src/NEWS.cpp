@@ -18,6 +18,8 @@ struct ModuleNews : Module {
         PARAM_CLAMP,
         PARAM_INTENSITY,
         PARAM_WRAP,
+        PARAM_SMOOTH,
+        PARAM_UNI_BI,
         NUM_PARAMS
     };
     enum InputIds {
@@ -39,10 +41,30 @@ struct ModuleNews : Module {
     float sample;
     SchmittTrigger trig_hold;
     byte grid[GWIDTH * GHEIGHT] {};
+    float buffer[GWIDTH * GHEIGHT] {};
 
     ModuleNews() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     void step() override;
 };
+
+byte minb(byte a, byte b) {return a < b ? a : b;}
+byte maxb(byte a, byte b) {return a > b ? a : b;}
+int clampfuck(int v, int l, int h) {return (v < l) ? l : ((v > h) ? h : v);}
+void _slew(float *v, float i, float sa, float min, float max)
+{
+    float shape = 0.5;
+    if (i > *v) {
+        float s = max * powf(min / max, sa);
+        *v += s * crossf(1.0, (1/10.0) * (i - *v), shape) / engineGetSampleRate();
+        if (*v > i)
+            *v = i;
+    } else if (i < *v) {
+        float s = max * powf(min / max, sa);
+        *v -= s * crossf(1.0, (1/10.0) * (*v - i), shape) / engineGetSampleRate();
+        if (*v < i)
+            *v = i;
+    }
+}
 
 void ModuleNews::step()
 {
@@ -50,14 +72,16 @@ void ModuleNews::step()
     bool    gatemode    = params[PARAM_GATEMODE].value > 0.0;
     bool    round       = params[PARAM_ROUND].value == 0.0;
     bool    clamp       = params[PARAM_CLAMP].value == 0.0;
+    bool    bi          = params[PARAM_UNI_BI].value == 0.0;
     byte    intensity   = (byte)(floor(params[PARAM_INTENSITY].value));
-    byte    wrap        = (byte)(floor(params[PARAM_WRAP].value));
-
+    int     wrap        = (int)(floor(params[PARAM_WRAP].value));
+    float   smooth      = params[PARAM_SMOOTH].value;
+    
     float in_intensity  = (inputs[IN_INTENSITY].value / 10.0) * 255.0;
-    float in_wrap       = (inputs[IN_WRAP].value / 10.0) * 31.0;
+    float in_wrap       = (inputs[IN_WRAP].value / 5.0) * 31.0;
 
-    intensity = (intensity + (byte)in_intensity > 255.0) ? 255.0 : intensity + (byte)in_intensity;
-    wrap = (wrap + (byte)in_wrap > 31.0) ? 31.0 : wrap + (byte)in_wrap;
+    intensity = minb(intensity + (byte)in_intensity, 255.0);
+    wrap = clampfuck(wrap + (int)in_wrap, -31, 31);
 
     if (trig_hold.process(inputs[IN_HOLD].value))
         sample = inputs[IN_NEWS].value;
@@ -68,8 +92,11 @@ void ModuleNews::step()
         news = (int)news;
         
     unsigned bits = *(reinterpret_cast<unsigned *>(&news));
-    bits = (bits << wrap) | (bits >> (32 - wrap));
-
+    if (wrap > 0)
+        bits = (bits << wrap) | (bits >> (32 - wrap));
+    else if (wrap < 0)
+        bits = (bits >> wrap) | (bits << (32 - wrap));
+    
     news = *((float *)&bits);
 
     unsigned key = *(reinterpret_cast<unsigned *>(&news));
@@ -128,18 +155,22 @@ void ModuleNews::step()
         for (int x = 0; x < GWIDTH; ++x) {
             int i = x + y * GWIDTH;
             
-            byte r = grid[i] * intensity - 1;
-            if (clamp && (int)grid[i] * (int)intensity - 1 > 0xFF)
+            byte r = grid[i] * intensity;
+            if (clamp && ((int)grid[i] * intensity) > 0xFF)
                 r = 0xFF;
 
             float v = gatemode
                       ? (grid[i] ? 1 : 0)
                       : ((byte)r / 255.0);
-            
+
             float l = v * 0.9;
-            
-            outputs[OUT_CELL + i].value = 5.0 * v;
-            lights[LIGHT_GRID + i].setBrightness(l);
+
+            _slew(buffer + i, v, smooth, 0.1, 100000.0);
+
+            outputs[OUT_CELL + i].value = 10.0 * buffer[i] - (bi ? 5.0 : 0.0);
+            lights[LIGHT_GRID + i].setBrightness(buffer[i] * 0.9);
+
+            //buffer[i] = v;
         }
 
 }
@@ -185,15 +216,16 @@ WidgetNews::WidgetNews()
     addParam(createParam<CKSS>(Vec(23       , 60), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
     addParam(createParam<CKSS>(Vec(41       , 60), module, ModuleNews::PARAM_ROUND, 0.0, 1.0, 1.0));
     addParam(createParam<CKSS>(Vec(59       , 60), module, ModuleNews::PARAM_CLAMP, 0.0, 1.0, 1.0));
-    addParam(createParam<TinyKnob>(Vec(80   , 60), module, ModuleNews::PARAM_INTENSITY, 1.0, 255.0, 4.0));
-    addParam(createParam<TinyKnob>(Vec(105  , 60), module, ModuleNews::PARAM_WRAP, 1.0, 31.0, 0.0));
+    addParam(createParam<TinyKnob>(Vec(80   , 60), module, ModuleNews::PARAM_INTENSITY, 1.0, 256.0, 1.0));
+    addParam(createParam<TinyKnob>(Vec(105  , 60), module, ModuleNews::PARAM_WRAP, -31.0, 32.0, 0.0));
 
-
-    
     for (int y = 0; y < GHEIGHT; ++y)
         for (int x = 0; x < GWIDTH; ++x) {
             int i = x + y * GWIDTH;
             addChild(createLight<CellLight<GreenLight>>(Vec(7 + x * 30, 100 + y * 30), module, ModuleNews::LIGHT_GRID + i));
             addOutput(createOutput<PJ301MPort>(Vec(7 + x * 30 + 2, 100 + y * 30 + 2), module, ModuleNews::OUT_CELL + i));
         }
+
+    addParam(createParam<CKSS>(Vec(box.size.x / 2 - 40, 350), module, ModuleNews::PARAM_UNI_BI, 0.0, 1.0, 1.0));
+    addParam(createParam<TinyKnob>(Vec(box.size.x / 2 - 15, 350), module, ModuleNews::PARAM_SMOOTH, 0.0, 1.0, 0.0));
 }
