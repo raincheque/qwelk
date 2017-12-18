@@ -36,3 +36,6 @@ struct WidgetXor : ModuleWidget {
     WidgetXor();
 };
 
+struct WidgetMix : ModuleWidget {
+    WidgetMix();
+};
