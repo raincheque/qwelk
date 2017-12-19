@@ -9,6 +9,7 @@ struct ModuleColumn : Module {
     enum ParamIds {
         PARAM_MASTER,
         PARAM_AVG,
+        PARAM_WEIGHTED,
         NUM_PARAMS
     };
     enum InputIds {
@@ -31,27 +32,34 @@ struct ModuleColumn : Module {
 
 void ModuleColumn::step() {
     bool avg = params[PARAM_AVG].value == 0.0;
+    bool weighted = params[PARAM_WEIGHTED].value == 0.0;
 
-    int onno = 0;
+    float onno = 0;
     float dsum = 0.0;
     for (int i = 0; i < CHANNELS; ++i) {
         float usv = inputs[IN_UPSTREAM + i].value;
         float val = inputs[IN_SIG + i].value;
-
-        if (inputs[IN_UPSTREAM + i].active && usv != 0.0)
-            onno++;
-        if (inputs[IN_SIG + i].active && val != 0.0)
-            onno++;
-
+        
         outputs[OUT_SIDE + i].value = val;
 
-        float sum = usv + val;
+        usv = avg ? (usv < 0.0 ? 0.0 : usv) : (usv);
+        
+        if (inputs[IN_UPSTREAM + i].active)
+        {
+            if (weighted)
+                onno += usv;
+            else if (usv != 0.0)
+                onno += 1;
+        }
+        
+        if (!weighted && inputs[IN_SIG + i].active && val != 0.0)
+            onno += 1;
+
+        float sum = weighted ? (usv * val) : (usv + val);
+
         dsum += sum;
         
-        if (avg && onno > 0)
-            dsum = dsum / onno;
-        
-        outputs[OUT_DOWNSTREAM + i].value = dsum;
+        outputs[OUT_DOWNSTREAM + i].value = (avg && onno != 0) ? (dsum / onno) : (dsum);
     }
 }
 
@@ -60,7 +68,7 @@ WidgetColumn::WidgetColumn() {
     ModuleColumn *module = new ModuleColumn();
     setModule(module);
 
-    box.size = Vec(6 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
+    box.size = Vec(4 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
     {
         SVGPanel *panel = new SVGPanel();
         panel->box.size = box.size;
@@ -72,11 +80,12 @@ WidgetColumn::WidgetColumn() {
     addChild(createScrew<ScrewSilver>(Vec(15, 365)));
 
     addParam(createParam<CKSS>(Vec(3, 30), module, ModuleColumn::PARAM_AVG, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(50, 30), module, ModuleColumn::PARAM_WEIGHTED, 0.0, 1.0, 1.0));
 
-    float x = 7.5, xstep = 25, ystep = 20;
+    float x = 2, xstep = 15, ystep = 23.5;
     for (int i = 0; i < CHANNELS; ++i)
     {
-        float y = 90 + i * 70;
+        float y = 80 + i * 80;
         addInput(createInput<PJ301MPort>(Vec(x + xstep, y - ystep), module, ModuleColumn::IN_UPSTREAM + i));
         addOutput(createOutput<PJ301MPort>(Vec(x + xstep*2, y), module, ModuleColumn::OUT_SIDE + i));
         addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleColumn::IN_SIG + i));
