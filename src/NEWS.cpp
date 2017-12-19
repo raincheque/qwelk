@@ -20,6 +20,7 @@ struct ModuleNews : Module {
         PARAM_WRAP,
         PARAM_SMOOTH,
         PARAM_UNI_BI,
+        PARAM_OFFSET,
         NUM_PARAMS
     };
     enum InputIds {
@@ -27,6 +28,7 @@ struct ModuleNews : Module {
         IN_INTENSITY,
         IN_WRAP,
         IN_HOLD,
+        IN_OFFSET,
         NUM_INPUTS
     };
     enum OutputIds {
@@ -112,7 +114,11 @@ void ModuleNews::step()
     int lt = (key      ) & 0xFF;
 
     // read the N-E-W-S
-    int cy = GHEIGHT / 2, cx = GWIDTH / 2;
+    const int max_offset = GWIDTH * GHEIGHT;
+    int offset = floor(params[PARAM_OFFSET].value);
+    offset = maxi(offset + floor((inputs[IN_OFFSET].value / 10.0) * max_offset), max_offset);
+    int cy = offset / GWIDTH,  // GHEIGHT / 2,
+        cx = offset % GWIDTH;  // GWIDTH / 2;
 
     int w = 0;
     while (w++ < (mode ? 1 : 8)) {
@@ -208,15 +214,13 @@ WidgetNews::WidgetNews()
     addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
 
 
-    addInput(createInput<PJ301MPort>(Vec(10 , 30), module, ModuleNews::IN_NEWS));
-    addInput(createInput<PJ301MPort>(Vec(40 , 30), module, ModuleNews::IN_HOLD));
+    addInput(createInput<PJ301MPort>(Vec(10 , 30), module, ModuleNews::IN_HOLD));
+    addInput(createInput<PJ301MPort>(Vec(10 , 60), module, ModuleNews::IN_NEWS));
+    addInput(createInput<PJ301MPort>(Vec(40 , 30), module, ModuleNews::IN_OFFSET));
+    addParam(createParam<TinyKnob>(Vec(45   , 60), module, ModuleNews::PARAM_OFFSET, 0.0, GWIDTH*GHEIGHT, (GWIDTH/2+(GHEIGHT/2)*GWIDTH)));
     addInput(createInput<PJ301MPort>(Vec(70 , 30), module, ModuleNews::IN_INTENSITY));
-    addInput(createInput<PJ301MPort>(Vec(100, 30), module, ModuleNews::IN_WRAP));
-    addParam(createParam<CKSS>(Vec(5        , 60), module, ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(23       , 60), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(41       , 60), module, ModuleNews::PARAM_ROUND, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(59       , 60), module, ModuleNews::PARAM_CLAMP, 0.0, 1.0, 1.0));
     addParam(createParam<TinyKnob>(Vec(80   , 60), module, ModuleNews::PARAM_INTENSITY, 1.0, 256.0, 1.0));
+    addInput(createInput<PJ301MPort>(Vec(100, 30), module, ModuleNews::IN_WRAP));
     addParam(createParam<TinyKnob>(Vec(105  , 60), module, ModuleNews::PARAM_WRAP, -31.0, 32.0, 0.0));
 
     for (int y = 0; y < GHEIGHT; ++y)
@@ -226,6 +230,11 @@ WidgetNews::WidgetNews()
             addOutput(createOutput<PJ301MPort>(Vec(7 + x * 30 + 2, 100 + y * 30 + 2), module, ModuleNews::OUT_CELL + i));
         }
 
-    addParam(createParam<CKSS>(Vec(box.size.x / 2 - 40, 350), module, ModuleNews::PARAM_UNI_BI, 0.0, 1.0, 1.0));
-    addParam(createParam<TinyKnob>(Vec(box.size.x / 2 - 15, 350), module, ModuleNews::PARAM_SMOOTH, 0.0, 1.0, 0.0));
+    const float bottom_row = 345;
+    addParam(createParam<CKSS>(Vec(5        , bottom_row), module, ModuleNews::PARAM_UNI_BI, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(25       , bottom_row), module, ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(45       , bottom_row), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(65       , bottom_row), module, ModuleNews::PARAM_ROUND, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(85       , bottom_row), module, ModuleNews::PARAM_CLAMP, 0.0, 1.0, 1.0));
+    addParam(createParam<TinyKnob>(Vec(110  , bottom_row), module, ModuleNews::PARAM_SMOOTH, 0.0, 1.0, 0.0));
 }
