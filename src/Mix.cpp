@@ -71,7 +71,7 @@ WidgetMix::WidgetMix() {
     {
         SVGPanel *panel = new SVGPanel();
         panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Not.svg")));
+        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Blank_8.svg")));
         addChild(panel);
     }
 
