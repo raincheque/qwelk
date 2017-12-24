@@ -3,11 +3,15 @@
 #include "qwelk.hpp"
 
 
-#define GWIDTH  4
-#define GHEIGHT 8
-#define LIGHT_SIZE 10
+#define GWIDTH          4
+#define GHEIGHT         8
+#define GSIZE           (GWIDTH*GHEIGHT)
+#define GMID            (GWIDTH/2+(GHEIGHT/2)*GWIDTH)
+#define LIGHT_SIZE      10
+#define DIR_BIT_SIZE    8
 
-typedef unsigned char byte;
+
+typedef uint8_t byte;
 
 
 struct ModuleNews : Module {
@@ -20,7 +24,7 @@ struct ModuleNews : Module {
         PARAM_WRAP,
         PARAM_SMOOTH,
         PARAM_UNI_BI,
-        PARAM_OFFSET,
+        PARAM_ORIGIN,
         NUM_PARAMS
     };
     enum InputIds {
@@ -28,30 +32,47 @@ struct ModuleNews : Module {
         IN_INTENSITY,
         IN_WRAP,
         IN_HOLD,
-        IN_OFFSET,
+        IN_ORIGIN,
         NUM_INPUTS
     };
     enum OutputIds {
         OUT_CELL,
-        NUM_OUTPUTS = OUT_CELL + GWIDTH * GHEIGHT
+        NUM_OUTPUTS = OUT_CELL + GSIZE
     };
     enum LightIds {
         LIGHT_GRID,
-        NUM_LIGHTS = LIGHT_GRID + GWIDTH * GHEIGHT
+        NUM_LIGHTS = LIGHT_GRID + GSIZE
     };
 
     float sample;
     SchmittTrigger trig_hold;
-    byte grid[GWIDTH * GHEIGHT] {};
-    float buffer[GWIDTH * GHEIGHT] {};
+    byte grid[GSIZE] {};
+    float buffer[GSIZE] {};
 
     ModuleNews() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     void step() override;
+    inline void set(int i, bool gatemode)
+    {
+        if (gatemode)
+            grid[i] ^= 1;
+        else
+            grid[i] += 1;
+    }
+    inline void set(int x, int y, bool gatemode)
+    {
+        set(x + y * GWIDTH, gatemode);
+    }
 };
 
-byte minb(byte a, byte b) {return a < b ? a : b;}
-byte maxb(byte a, byte b) {return a > b ? a : b;}
-int clampfuck(int v, int l, int h) {return (v < l) ? l : ((v > h) ? h : v);}
+
+//===============================================================================
+//TODO: move to common qwelkery
+inline byte minb(byte a, byte b) {return a < b ? a : b;}
+
+inline byte maxb(byte a, byte b) {return a > b ? a : b;}
+
+inline int clampfuck(int v, int l, int h) {return (v < l) ? l : ((v > h) ? h : v);}
+
 void _slew(float *v, float i, float sa, float min, float max)
 {
     float shape = 0.5;
@@ -67,6 +88,8 @@ void _slew(float *v, float i, float sa, float min, float max)
             *v = i;
     }
 }
+//==============================================================================
+
 
 void ModuleNews::step()
 {
@@ -76,111 +99,104 @@ void ModuleNews::step()
     bool    clamp       = params[PARAM_CLAMP].value == 0.0;
     bool    bi          = params[PARAM_UNI_BI].value == 0.0;
     byte    intensity   = (byte)(floor(params[PARAM_INTENSITY].value));
-    int     wrap        = (int)(floor(params[PARAM_WRAP].value));
+    int     wrap        = floor(params[PARAM_WRAP].value);
+    int     origin      = floor(params[PARAM_ORIGIN].value);
     float   smooth      = params[PARAM_SMOOTH].value;
-    
+
+    float in_origin     = inputs[IN_ORIGIN].value / 10.0;
     float in_intensity  = (inputs[IN_INTENSITY].value / 10.0) * 255.0;
     float in_wrap       = (inputs[IN_WRAP].value / 5.0) * 31.0;
 
+    
     intensity = minb(intensity + (byte)in_intensity, 255.0);
     wrap = clampfuck(wrap + (int)in_wrap, -31, 31);
 
+    // are we doing s&h?
     if (trig_hold.process(inputs[IN_HOLD].value))
         sample = inputs[IN_NEWS].value;
-    
-    float news = (inputs[IN_HOLD].active) ?  sample : inputs[IN_NEWS].value;
 
+    // read the news, or if s&h is active just the held sample
+    float news = (inputs[IN_HOLD].active) ? sample : inputs[IN_NEWS].value;
+
+    // if round switch is down, round off the  input signal to an integer
     if (round)
-        news = (int)news;
-        
-    unsigned bits = *(reinterpret_cast<unsigned *>(&news));
+        news = ceil(news);
+
+    // wrap the bits around, e.g. wrap = 2, 1001 ->  0110 / wrap = -3,  1001 -> 0011
+    uint32_t bits = *(reinterpret_cast<uint32_t *>(&news));
     if (wrap > 0)
         bits = (bits << wrap) | (bits >> (32 - wrap));
-    else if (wrap < 0)
+    else if (wrap < 0) {
+        wrap = -wrap;
         bits = (bits >> wrap) | (bits << (32 - wrap));
+    }
     
     news = *((float *)&bits);
 
-    unsigned key = *(reinterpret_cast<unsigned *>(&news));
+    // extract the key out the bits which represent the input signal
+    uint32_t key = *(reinterpret_cast<uint32_t *>(&news));
 
     // reset grid
-    for (int i = 0; i < GWIDTH * GHEIGHT; ++i)
+    for (int i = 0; i < GSIZE; ++i)
         grid[i] = 0;
 
-    // extract N-E-W-S info
-    int up = (key >> 24) & 0xFF;
-    int rt = (key >> 16) & 0xFF;
-    int dn = (key >>  8) & 0xFF;
-    int lt = (key      ) & 0xFF;
+    // determine origin
+    origin = mini(origin + floor(in_origin * GSIZE), GSIZE);
+    int cy = origin / GWIDTH,
+        cx = origin % GWIDTH;
 
-    // read the N-E-W-S
-    const int max_offset = GWIDTH * GHEIGHT;
-    int offset = floor(params[PARAM_OFFSET].value);
-    offset = maxi(offset + floor((inputs[IN_OFFSET].value / 10.0) * max_offset), max_offset);
-    int cy = offset / GWIDTH,  // GHEIGHT / 2,
-        cx = offset % GWIDTH;  // GWIDTH / 2;
+    // extract N-E-W-S steps
+    int nort = (key >> 24) & 0xFF,
+        east = (key >> 16) & 0xFF,
+        sout = (key >>  8) & 0xFF,
+        west = (key      ) & 0xFF;
 
-    int w = 0;
-    while (w++ < (mode ? 1 : 8)) {
-        int cond = mode ? (up) : (((up >> w) & 1) == 1);
+    // begin plotting, or 'the walk'
+    int w = 0,
+       ic = (mode ? 1 : DIR_BIT_SIZE),
+     cond = 0;
+    while (w++ < ic) {
+        cond = mode ? (nort) : (((nort >> w) & 1) == 1);
         while (cond-- > 0) {
             cy = (cy - 1) >= 0 ? cy - 1 : GHEIGHT - 1;
-            if (gatemode)
-                grid[cx + cy * GWIDTH] ^= 1;
-            else
-                grid[cx + cy * GWIDTH] += 1;
+            set(cx, cy, gatemode);
         }
-        cond = (mode ? (rt) : (((rt >> w) & 1) == 1));
+        cond = (mode ? (east) : (((east >> w) & 1) == 1));
         while (cond-- > 0) {
             cx = (cx + 1) < GWIDTH ? cx + 1 : 0;
-            if (gatemode)
-                grid[cx + cy * GWIDTH] ^= 1;
-            else
-                grid[cx + cy * GWIDTH] += 1;
+            set(cx, cy, gatemode);
         }
-        cond = (mode ? (dn) : (((dn >> w) & 1) == 1));
+        cond = (mode ? (sout) : (((sout >> w) & 1) == 1));
         while (cond-- > 0) {
             cy = (cy + 1) < GHEIGHT ? cy + 1 : 0;
-            if (gatemode)
-                grid[cx + cy * GWIDTH] ^= 1;
-            else
-                grid[cx + cy * GWIDTH] += 1;
+            set(cx, cy, gatemode);
         }
-        cond = (mode ? (lt) : (((lt >> w) & 1) == 1));
+        cond = (mode ? (west) : (((west >> w) & 1) == 1));
         while (cond-- > 0) {
             cx = (cx - 1) >= 0 ? cx - 1 : GWIDTH - 1;
-            if (gatemode)
-                grid[cx + cy * GWIDTH] ^= 1;
-            else
-                grid[cx + cy * GWIDTH] += 1;
+            set(cx, cy, gatemode);
         }
     }
 
     // output
-    for (int y = 0; y < GHEIGHT; ++y)
-        for (int x = 0; x < GWIDTH; ++x) {
-            int i = x + y * GWIDTH;
-            
-            byte r = grid[i] * intensity;
-            if (clamp && ((int)grid[i] * intensity) > 0xFF)
-                r = 0xFF;
+    for (int i = 0; i < GSIZE; ++i) {
+        byte r = grid[i] * intensity;
+        if (clamp && ((int)grid[i] * (int)intensity) > 0xFF)
+            r = 0xFF;
 
-            float v = gatemode
-                      ? (grid[i] ? 1 : 0)
-                      : ((byte)r / 255.0);
+        float v = gatemode
+                  ? (grid[i] ? 1 : 0)
+                  : ((byte)r / 255.0);
 
-            float l = v * 0.9;
+        _slew(buffer + i, v, smooth, 0.1, 100000.0);
 
-            _slew(buffer + i, v, smooth, 0.1, 100000.0);
-
-            outputs[OUT_CELL + i].value = 10.0 * buffer[i] - (bi ? 5.0 : 0.0);
-            lights[LIGHT_GRID + i].setBrightness(buffer[i] * 0.9);
-
-            //buffer[i] = v;
-        }
+        outputs[OUT_CELL + i].value = 10.0 * buffer[i] - (bi ? 5.0 : 0.0);
+        lights[LIGHT_GRID + i].setBrightness(buffer[i] * 0.9);
+    }
 
 }
 
+//TODO: move to common
 struct TinyKnob : RoundBlackKnob {
 	TinyKnob()
     {
@@ -216,18 +232,18 @@ WidgetNews::WidgetNews()
 
     addInput(createInput<PJ301MPort>(Vec(10 , 30), module, ModuleNews::IN_HOLD));
     addInput(createInput<PJ301MPort>(Vec(10 , 60), module, ModuleNews::IN_NEWS));
-    addInput(createInput<PJ301MPort>(Vec(40 , 30), module, ModuleNews::IN_OFFSET));
-    addParam(createParam<TinyKnob>(Vec(45   , 60), module, ModuleNews::PARAM_OFFSET, 0.0, GWIDTH*GHEIGHT, (GWIDTH/2+(GHEIGHT/2)*GWIDTH)));
-    addInput(createInput<PJ301MPort>(Vec(70 , 30), module, ModuleNews::IN_INTENSITY));
-    addParam(createParam<TinyKnob>(Vec(80   , 60), module, ModuleNews::PARAM_INTENSITY, 1.0, 256.0, 1.0));
-    addInput(createInput<PJ301MPort>(Vec(100, 30), module, ModuleNews::IN_WRAP));
-    addParam(createParam<TinyKnob>(Vec(105  , 60), module, ModuleNews::PARAM_WRAP, -31.0, 32.0, 0.0));
+    addInput(createInput<PJ301MPort>(Vec(40 , 60), module, ModuleNews::IN_ORIGIN));
+    addParam(createParam<TinyKnob>(Vec(42 , 32.5), module, ModuleNews::PARAM_ORIGIN, 0.0, GSIZE, GMID));
+    addInput(createInput<PJ301MPort>(Vec(70 , 60), module, ModuleNews::IN_INTENSITY));
+    addParam(createParam<TinyKnob>(Vec(72 , 32.5), module, ModuleNews::PARAM_INTENSITY, 1.0, 256.0, 1.0));
+    addInput(createInput<PJ301MPort>(Vec(100, 60), module, ModuleNews::IN_WRAP));
+    addParam(createParam<TinyKnob>(Vec(102, 32.5), module, ModuleNews::PARAM_WRAP, -31.0, 32.0, 0.0));
 
     for (int y = 0; y < GHEIGHT; ++y)
         for (int x = 0; x < GWIDTH; ++x) {
             int i = x + y * GWIDTH;
-            addChild(createLight<CellLight<GreenLight>>(Vec(7 + x * 30, 100 + y * 30), module, ModuleNews::LIGHT_GRID + i));
-            addOutput(createOutput<PJ301MPort>(Vec(7 + x * 30 + 2, 100 + y * 30 + 2), module, ModuleNews::OUT_CELL + i));
+            addChild(createLight<CellLight<GreenLight>>(Vec(7 + x * 30, 95 + y * 30), module, ModuleNews::LIGHT_GRID + i));
+            addOutput(createOutput<PJ301MPort>(Vec(7 + x * 30 + 2, 95 + y * 30 + 2), module, ModuleNews::OUT_CELL + i));
         }
 
     const float bottom_row = 345;
