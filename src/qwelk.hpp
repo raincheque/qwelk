@@ -43,3 +43,11 @@ struct WidgetMix : ModuleWidget {
 struct WidgetColumn : ModuleWidget {
     WidgetColumn();
 };
+
+struct WidgetGate : ModuleWidget {
+    WidgetGate();
+};
+
+struct WidgetWrap : ModuleWidget {
+    WidgetWrap();
+};
