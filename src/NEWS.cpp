@@ -220,7 +220,7 @@ WidgetNews::WidgetNews()
     {
         SVGPanel *panel = new SVGPanel();
         panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Blank_16.svg")));
+        panel->setBackground(SVG::load(assetPlugin(plugin, "res/NEWS.svg")));
         addChild(panel);
     }
 
@@ -230,20 +230,22 @@ WidgetNews::WidgetNews()
     addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
 
 
-    addInput(createInput<PJ301MPort>(Vec(10 , 30), module, ModuleNews::IN_HOLD));
-    addInput(createInput<PJ301MPort>(Vec(10 , 60), module, ModuleNews::IN_NEWS));
-    addInput(createInput<PJ301MPort>(Vec(40 , 60), module, ModuleNews::IN_ORIGIN));
-    addParam(createParam<TinyKnob>(Vec(42 , 32.5), module, ModuleNews::PARAM_ORIGIN, 0.0, GSIZE, GMID));
-    addInput(createInput<PJ301MPort>(Vec(70 , 60), module, ModuleNews::IN_INTENSITY));
-    addParam(createParam<TinyKnob>(Vec(72 , 32.5), module, ModuleNews::PARAM_INTENSITY, 1.0, 256.0, 1.0));
-    addInput(createInput<PJ301MPort>(Vec(100, 60), module, ModuleNews::IN_WRAP));
-    addParam(createParam<TinyKnob>(Vec(102, 32.5), module, ModuleNews::PARAM_WRAP, -31.0, 32.0, 0.0));
+    addInput(createInput<PJ301MPort>(Vec(9 , 30), module, ModuleNews::IN_HOLD));
+    addInput(createInput<PJ301MPort>(Vec(9 , 65), module, ModuleNews::IN_NEWS));
+    
+    addInput(createInput<PJ301MPort>(Vec(39 , 65), module, ModuleNews::IN_ORIGIN));
+    addParam(createParam<TinyKnob>(Vec(41.6, 32.5), module, ModuleNews::PARAM_ORIGIN, 0.0, GSIZE, GMID));
+    addInput(createInput<PJ301MPort>(Vec(69 , 65), module, ModuleNews::IN_INTENSITY));
+    addParam(createParam<TinyKnob>(Vec(71.1 , 32.5), module, ModuleNews::PARAM_INTENSITY, 1.0, 256.0, 1.0));
+    addInput(createInput<PJ301MPort>(Vec(99, 65), module, ModuleNews::IN_WRAP));
+    addParam(createParam<TinyKnob>(Vec(101, 32.5), module, ModuleNews::PARAM_WRAP, -31.0, 32.0, 0.0));
 
+    const float out_ytop = 92.5;
     for (int y = 0; y < GHEIGHT; ++y)
         for (int x = 0; x < GWIDTH; ++x) {
             int i = x + y * GWIDTH;
-            addChild(createLight<CellLight<GreenLight>>(Vec(7 + x * 30, 95 + y * 30), module, ModuleNews::LIGHT_GRID + i));
-            addOutput(createOutput<PJ301MPort>(Vec(7 + x * 30 + 2, 95 + y * 30 + 2), module, ModuleNews::OUT_CELL + i));
+            addChild(createLight<CellLight<GreenLight>>(Vec(7 + x * 30 - 0.2, out_ytop + y * 30 - 0.1), module, ModuleNews::LIGHT_GRID + i));
+            addOutput(createOutput<PJ301MPort>(Vec(7 + x * 30 + 2, out_ytop + y * 30 + 2), module, ModuleNews::OUT_CELL + i));
         }
 
     const float bottom_row = 345;
