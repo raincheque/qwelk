@@ -39,3 +39,18 @@ struct WidgetXor : ModuleWidget {
 struct WidgetNews : ModuleWidget {
     WidgetNews();
 };
+struct WidgetMix : ModuleWidget {
+    WidgetMix();
+};
+
+struct WidgetColumn : ModuleWidget {
+    WidgetColumn();
+};
+
+struct WidgetGate : ModuleWidget {
+    WidgetGate();
+};
+
+struct WidgetWrap : ModuleWidget {
+    WidgetWrap();
+};
