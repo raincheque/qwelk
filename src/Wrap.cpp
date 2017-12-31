@@ -28,7 +28,7 @@ struct ModuleWrap : Module {
 };
 
 void ModuleWrap::step() {
-    int wrap = (clampf(inputs[IN_WRAP].value, -5.0, 5.0) / 5.0) * (CHANNELS - 1);
+    int wrap = (/*clampf(*/inputs[IN_WRAP].value/*, -5.0, 5.0)*/ / 5.0) * (CHANNELS - 1);
 
     for (int i = 0; i < CHANNELS; ++i) {
         int w = i;
@@ -48,7 +48,7 @@ WidgetWrap::WidgetWrap() {
     {
         SVGPanel *panel = new SVGPanel();
         panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Not.svg")));
+        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Wrap.svg")));
         addChild(panel);
     }
 
