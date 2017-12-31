@@ -72,17 +72,17 @@ WidgetColumn::WidgetColumn() {
     {
         SVGPanel *panel = new SVGPanel();
         panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Blank_8.svg")));
+        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Column.svg")));
         addChild(panel);
     }
 
     addChild(createScrew<ScrewSilver>(Vec(15, 0)));
     addChild(createScrew<ScrewSilver>(Vec(15, 365)));
 
-    addParam(createParam<CKSS>(Vec(3, 30), module, ModuleColumn::PARAM_AVG, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(50, 30), module, ModuleColumn::PARAM_WEIGHTED, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(3.5, 30), module, ModuleColumn::PARAM_AVG, 0.0, 1.0, 1.0));
+    addParam(createParam<CKSS>(Vec(42, 30), module, ModuleColumn::PARAM_WEIGHTED, 0.0, 1.0, 1.0));
 
-    float x = 2, xstep = 15, ystep = 23.5;
+    float x = 2.5, xstep = 15, ystep = 23.5;
     for (int i = 0; i < CHANNELS; ++i)
     {
         float y = 80 + i * 80;
