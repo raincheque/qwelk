@@ -45,6 +45,7 @@ struct WidgetMix : ModuleWidget {
 
 struct WidgetColumn : ModuleWidget {
     WidgetColumn();
+    Menu *createContextMenu() override;
 };
 
 struct WidgetGate : ModuleWidget {
