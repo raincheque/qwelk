@@ -26,45 +26,49 @@ struct ModuleColumn : Module {
         NUM_LIGHTS
     };
 
+    bool allow_neg_weights = false;
+    
     ModuleColumn() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     void step() override;
 };
 
-void ModuleColumn::step() {
-    bool avg = params[PARAM_AVG].value == 0.0;
-    bool weighted = params[PARAM_WEIGHTED].value == 0.0;
+void ModuleColumn::step()
+{
+    bool avg        = params[PARAM_AVG].value == 0.0;
+    bool weighted   = params[PARAM_WEIGHTED].value == 0.0;
 
-    float onno = 0;
-    float dsum = 0.0;
+    float total     = 0;
+    float on_count  = 0;
+
     for (int i = 0; i < CHANNELS; ++i) {
-        float usv = inputs[IN_UPSTREAM + i].value;
-        float val = inputs[IN_SIG + i].value;
-        
-        outputs[OUT_SIDE + i].value = val;
+        float in_upstream   = inputs[IN_UPSTREAM + i].value;
+        float in_sig        = inputs[IN_SIG + i].value;
 
-        usv = avg ? (usv < 0.0 ? 0.0 : usv) : (usv);
+        // just forward the input signal as the side stream,
+        // used for chaining multiple Columns together
+        outputs[OUT_SIDE + i].value = in_sig;
         
-        if (inputs[IN_UPSTREAM + i].active)
-        {
+        if (inputs[IN_UPSTREAM + i].active) {
             if (weighted)
-                onno += usv;
-            else if (usv != 0.0)
-                onno += 1;
+                on_count += allow_neg_weights ? in_upstream : fabs(in_upstream);
+            else if (in_upstream != 0.0)
+                on_count += 1;
         }
         
-        if (!weighted && inputs[IN_SIG + i].active && val != 0.0)
-            onno += 1;
+        if (!weighted && in_sig != 0.0)
+            on_count += 1;
 
-        float sum = weighted ? (usv * val) : (usv + val);
+        float product = weighted ? (in_upstream * in_sig) : (in_upstream + in_sig);
 
-        dsum += sum;
+        total += product;
         
-        outputs[OUT_DOWNSTREAM + i].value = (avg && onno != 0) ? (dsum / onno) : (dsum);
+        outputs[OUT_DOWNSTREAM + i].value = avg ? ((on_count != 0) ? (total / on_count) : 0) : (total);
     }
 }
 
 
-WidgetColumn::WidgetColumn() {
+WidgetColumn::WidgetColumn()
+{
     ModuleColumn *module = new ModuleColumn();
     setModule(module);
 
@@ -91,4 +95,34 @@ WidgetColumn::WidgetColumn() {
         addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleColumn::IN_SIG + i));
         addOutput(createOutput<PJ301MPort>(Vec(x + xstep, y + ystep), module, ModuleColumn::OUT_DOWNSTREAM + i));
     }
+}
+
+struct MenuItemAllowNegWeights : MenuItem {
+    ModuleColumn *col;
+    void onAction(EventAction &e) override
+    {
+        col->allow_neg_weights ^= true;
+    }
+    void step () override
+    {
+        rightText = (col->allow_neg_weights) ? "✔" : "";
+    }
+};
+
+Menu *WidgetColumn::createContextMenu()
+{
+    Menu *menu = ModuleWidget::createContextMenu();
+
+    MenuLabel *spacer = new MenuLabel();
+    menu->pushChild(spacer);
+
+    ModuleColumn *column = dynamic_cast<ModuleColumn *>(module);
+    assert(column);
+
+    MenuItemAllowNegWeights *item = new MenuItemAllowNegWeights();
+    item->text = "Allow Negative Weights";
+    item->col  = column;
+    menu->pushChild(item);
+
+    return menu;
 }
