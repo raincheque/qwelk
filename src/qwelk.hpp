@@ -6,10 +6,12 @@ extern Plugin *plugin;
 
 struct WidgetAutomaton : ModuleWidget {
     WidgetAutomaton();
+    Menu *createContextMenu() override;
 };
 
 struct WidgetChaos : ModuleWidget {
     WidgetChaos();
+    Menu *createContextMenu() override;
 };
 
 struct WidgetByte : ModuleWidget {

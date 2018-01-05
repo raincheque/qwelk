@@ -46,6 +46,7 @@ struct ModuleChaos : Module {
         NUM_LIGHTS = LIGHT_MUTE + CHANNELS * 2
     };
 
+    int             fun = 0;
     int             scan = 1;
     int             scan_sign = 0;
     SchmittTrigger  trig_step_input;
@@ -65,47 +66,53 @@ struct ModuleChaos : Module {
     void step() override;
     
     json_t *toJson() override {
-		json_t *rootJ = json_object();
+        json_t *rootJ = json_object();
 
-		json_object_set_new(rootJ, "scan", json_integer(scan));
+        json_object_set_new(rootJ, "scan", json_integer(scan));
+        json_object_set_new(rootJ, "fun", json_integer(fun));
 
-		json_t *statesJ = json_array();
-		for (int i = 0; i < CHANNELS*2; i++) {
-			json_t *stateJ = json_integer(states[i]);
-			json_array_append_new(statesJ, stateJ);
-		}
-		json_object_set_new(rootJ, "states", statesJ);
+        json_t *statesJ = json_array();
+        for (int i = 0; i < CHANNELS*2; i++) {
+            json_t *stateJ = json_integer(states[i]);
+            json_array_append_new(statesJ, stateJ);
+        }
+        json_object_set_new(rootJ, "states", statesJ);
 
-		return rootJ;
-	}
+        return rootJ;
+    }
 
-	void fromJson(json_t *rootJ) override {
-		json_t *scanJ = json_object_get(rootJ, "scan");
-		if (scanJ)
-			scan = json_integer_value(scanJ);
+    void fromJson(json_t *rootJ) override {
+        json_t *scanJ = json_object_get(rootJ, "scan");
+        if (scanJ)
+            scan = json_integer_value(scanJ);
 
-		// gates
-		json_t *statesJ = json_object_get(rootJ, "states");
-		if (statesJ) {
-			for (int i = 0; i < 8; i++) {
-				json_t *gateJ = json_array_get(statesJ, i);
-				if (gateJ)
-					states[i] = json_integer_value(gateJ);
-			}
-		}
-	}
+        json_t *funJ = json_object_get(rootJ, "fun");
+        if (funJ)
+            fun = json_integer_value(funJ);
+        
+        // gates
+        json_t *statesJ = json_object_get(rootJ, "states");
+        if (statesJ) {
+            for (int i = 0; i < 8; i++) {
+                json_t *gateJ = json_array_get(statesJ, i);
+                if (gateJ)
+                    states[i] = json_integer_value(gateJ);
+            }
+        }
+    }
 
-	void reset() override {
+    void reset() override {
+        fun = 0;
         scan = 1;
-		for (int i = 0; i < CHANNELS * 2; i++)
-			states[i] = 0;
-	}
+        for (int i = 0; i < CHANNELS * 2; i++)
+            states[i] = 0;
+    }
 
-	void randomize() override {
+    void randomize() override {
         scan = (randomf() > 0.5) ? 1 : -1;
-		for (int i = 0; i < CHANNELS; i++)
-			states[i] = (randomf() > 0.5);
-	}
+        for (int i = 0; i < CHANNELS; i++)
+            states[i] = (randomf() > 0.5);
+    }
 };
 
 void ModuleChaos::step()
@@ -137,7 +144,7 @@ void ModuleChaos::step()
             int sum = 0;
             int tl  = i == 0 ? CHANNELS - 1 : i - 1;
             int tm  = i;
-            int tr  = i < CHANNELS - 1 ? i + 1: 0;
+            int tr  = i < CHANNELS - 1 ? i + (1 - fun): 0;
             sum |= states[CHANNELS + tr] ? (1 << 0) : 0;
             sum |= states[CHANNELS + tm] ? (1 << 1) : 0;
             sum |= states[CHANNELS + tl] ? (1 << 2) : 0;
@@ -281,3 +288,33 @@ WidgetChaos::WidgetChaos()
     addOutput(createOutput<PJ301MPort>(Vec(lghx + dist  * 5 , output_y + ypad ), module, ModuleChaos::OUTPUT_COUNT_OR));
 }
 
+
+struct MenuItemFun : MenuItem {
+    ModuleChaos *chaos;
+    void onAction(EventAction &e) override
+    {
+        chaos->fun ^= 1;
+    }
+    void step () override
+    {
+        rightText = (chaos->fun) ? "✔" : "";
+    }
+};
+
+Menu *WidgetChaos::createContextMenu()
+{
+    Menu *menu = ModuleWidget::createContextMenu();
+
+    MenuLabel *spacer = new MenuLabel();
+    menu->pushChild(spacer);
+
+    ModuleChaos *chaos = dynamic_cast<ModuleChaos *>(module);
+    assert(chaos);
+
+    MenuItemFun *item = new MenuItemFun();
+    item->text = "FUN";
+    item->chaos = chaos;
+    menu->pushChild(item);
+
+    return menu;
+}
