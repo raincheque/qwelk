@@ -1,5 +1,5 @@
 #include "qwelk.hpp"
-
+#include "qwelk_common.h"
 
 #define CHANNELS 2
 
@@ -39,14 +39,6 @@ void ModuleGate::step() {
     }
 }
 
-
-struct RoundTinyKnob : RoundBlackKnob {
-	RoundTinyKnob()
-    {
-		box.size = Vec(20, 20);
-	}
-};
-
 WidgetGate::WidgetGate() {
     ModuleGate *module = new ModuleGate();
     setModule(module);
@@ -65,9 +57,9 @@ WidgetGate::WidgetGate() {
     for (int i = 0; i < CHANNELS; ++i) {
         float x = 2.5, top = 45 + i * 158;
         addParam(createParam<CKSS>(         Vec(x + 5.7, top +   8), module, ModuleGate::PARAM_GATEMODE + i, 0.0, 1.0, 1.0));
-        addParam(createParam<RoundTinyKnob>(Vec(x + 2.5, top +  40), module, ModuleGate::PARAM_THRESHOLD + i, -10.0, 10.0, 0));
+        addParam(createParam<TinyKnob>(Vec(x + 2.5, top +  40), module, ModuleGate::PARAM_THRESHOLD + i, -10.0, 10.0, 0));
         addInput(createInput<PJ301MPort>(   Vec(x      , top +  63), module, ModuleGate::IN_SIG + i));
-        addParam(createParam<RoundTinyKnob>(Vec(x + 2.5, top + 102), module, ModuleGate::PARAM_OUTGAIN + i, -1.0, 1.0, 1.0));
+        addParam(createParam<TinyKnob>(Vec(x + 2.5, top + 102), module, ModuleGate::PARAM_OUTGAIN + i, -1.0, 1.0, 1.0));
         addOutput(createOutput<PJ301MPort>( Vec(x      , top + 125), module, ModuleGate::OUT_GATE + i));
     }
 }
