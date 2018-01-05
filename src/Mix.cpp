@@ -1,5 +1,7 @@
 #include "dsp/digital.hpp"
 #include "qwelk.hpp"
+#include "qwelk_common.h"
+
 
 struct ModuleMix : Module {
     enum ParamIds {
@@ -66,13 +68,6 @@ void ModuleMix::step() {
     }
 }
 
-struct RoundTinyKnob : RoundBlackKnob {
-	RoundTinyKnob()
-    {
-		box.size = Vec(20, 20);
-	}
-};
-
 WidgetMix::WidgetMix() {
     ModuleMix *module = new ModuleMix();
     setModule(module);
@@ -95,11 +90,11 @@ WidgetMix::WidgetMix() {
     
     addParam(createParam<RoundSmallBlackKnob>(Vec(x + 28,  55), module, ModuleMix::PARAM_GAIN_MS, 0.0, 1.0, 1.0));
 
-    addParam(createParam<RoundTinyKnob>(Vec(x    , 90), module, ModuleMix::PARAM_GAIN_M, 0.0, 1.0, 1.0));
+    addParam(createParam<TinyKnob>(Vec(x    , 90), module, ModuleMix::PARAM_GAIN_M, 0.0, 1.0, 1.0));
     addInput(createInput<PJ301MPort>(Vec(x + 30  , 88), module, ModuleMix::IN_GAIN_M));
     addOutput(createOutput<PJ301MPort>(Vec(x + 30, 113), module, ModuleMix::OUT_M));
 
-    addParam(createParam<RoundTinyKnob>(Vec(x    , 147), module, ModuleMix::PARAM_GAIN_S, 0.0, 1.0, 1.0));
+    addParam(createParam<TinyKnob>(Vec(x    , 147), module, ModuleMix::PARAM_GAIN_S, 0.0, 1.0, 1.0));
     addInput(createInput<PJ301MPort>(Vec(x + 30  , 145), module, ModuleMix::IN_GAIN_S));
     addOutput(createOutput<PJ301MPort>(Vec(x + 30, 169), module, ModuleMix::OUT_S));
 
@@ -108,11 +103,11 @@ WidgetMix::WidgetMix() {
 
     addParam(createParam<RoundSmallBlackKnob>(Vec(x + 28,  240), module, ModuleMix::PARAM_GAIN_LR, 0.0, 1.0, 1.0));
 
-    addParam(createParam<RoundTinyKnob>(Vec(x    , 275), module, ModuleMix::PARAM_GAIN_L, 0.0, 1.0, 1.0));
+    addParam(createParam<TinyKnob>(Vec(x    , 275), module, ModuleMix::PARAM_GAIN_L, 0.0, 1.0, 1.0));
     addInput(createInput<PJ301MPort>(Vec(x + 30  , 273), module, ModuleMix::IN_GAIN_L));
     addOutput(createOutput<PJ301MPort>(Vec(x + 30, 298), module, ModuleMix::OUT_L));
 
-    addParam(createParam<RoundTinyKnob>(Vec(x    , 332), module, ModuleMix::PARAM_GAIN_R, 0.0, 1.0, 1.0));
+    addParam(createParam<TinyKnob>(Vec(x    , 332), module, ModuleMix::PARAM_GAIN_R, 0.0, 1.0, 1.0));
     addInput(createInput<PJ301MPort>(Vec(x + 30  , 330), module, ModuleMix::IN_GAIN_R));
     addOutput(createOutput<PJ301MPort>(Vec(x + 30, 355), module, ModuleMix::OUT_R));
 }
