@@ -1,6 +1,7 @@
 #include "dsp/digital.hpp"
 #include "math.hpp"
 #include "qwelk.hpp"
+#include "qwelk_common.h"
 
 
 #define GWIDTH          4
@@ -9,9 +10,6 @@
 #define GMID            (GWIDTH/2+(GHEIGHT/2)*GWIDTH)
 #define LIGHT_SIZE      10
 #define DIR_BIT_SIZE    8
-
-
-typedef uint8_t byte;
 
 
 struct ModuleNews : Module {
@@ -51,6 +49,7 @@ struct ModuleNews : Module {
 
     ModuleNews() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     void step() override;
+    
     inline void set(int i, bool gatemode)
     {
         if (gatemode)
@@ -63,33 +62,6 @@ struct ModuleNews : Module {
         set(x + y * GWIDTH, gatemode);
     }
 };
-
-
-//===============================================================================
-//TODO: move to common qwelkery
-inline byte minb(byte a, byte b) {return a < b ? a : b;}
-
-inline byte maxb(byte a, byte b) {return a > b ? a : b;}
-
-inline int clampfuck(int v, int l, int h) {return (v < l) ? l : ((v > h) ? h : v);}
-
-void _slew(float *v, float i, float sa, float min, float max)
-{
-    float shape = 0.5;
-    if (i > *v) {
-        float s = max * powf(min / max, sa);
-        *v += s * crossf(1.0, (1/10.0) * (i - *v), shape) / engineGetSampleRate();
-        if (*v > i)
-            *v = i;
-    } else if (i < *v) {
-        float s = max * powf(min / max, sa);
-        *v -= s * crossf(1.0, (1/10.0) * (*v - i), shape) / engineGetSampleRate();
-        if (*v < i)
-            *v = i;
-    }
-}
-//==============================================================================
-
 
 void ModuleNews::step()
 {
@@ -109,7 +81,7 @@ void ModuleNews::step()
 
     
     intensity = minb(intensity + (byte)in_intensity, 255.0);
-    wrap = clampfuck(wrap + (int)in_wrap, -31, 31);
+    wrap = ::clampi(wrap + (int)in_wrap, -31, 31);
 
     // are we doing s&h?
     if (trig_hold.process(inputs[IN_HOLD].value))
@@ -188,21 +160,14 @@ void ModuleNews::step()
                   ? (grid[i] ? 1 : 0)
                   : ((byte)r / 255.0);
 
-        _slew(buffer + i, v, smooth, 0.1, 100000.0);
+        buffer[i] = slew(buffer[i], v, smooth, 0.1, 100000.0, 0.5);
 
         outputs[OUT_CELL + i].value = 10.0 * buffer[i] - (bi ? 5.0 : 0.0);
         lights[LIGHT_GRID + i].setBrightness(buffer[i] * 0.9);
     }
-
 }
 
 //TODO: move to common
-struct TinyKnob : RoundBlackKnob {
-	TinyKnob()
-    {
-		box.size = Vec(20, 20);
-	}
-};
 template <typename _BASE>
 struct CellLight : _BASE {
     CellLight()
