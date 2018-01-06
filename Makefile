@@ -1,3 +1,5 @@
+SLUG = Qwelk
+VERSION = 0.5.5
 
 # FLAGS will be passed to both the C and C++ compiler
 FLAGS +=
@@ -10,10 +12,6 @@ LDFLAGS +=
 
 # Add .cpp and .c files to the build
 SOURCES = $(wildcard src/*.cpp)
-
-
-# Must include the VCV plugin Makefile framework
-include ../../plugin.mk
 
 
 # Convenience target for including files in the distributable release
@@ -29,3 +27,6 @@ endif
 	cp -R res dist/$(DIST_NAME)/
 	cp -R examples dist/$(DIST_NAME)/
 	cd dist && zip -5 -r $(DIST_NAME)-$(VERSION)-$(ARCH).zip $(DIST_NAME)
+
+# Must include the VCV plugin Makefile framework
+include ../../plugin.mk
