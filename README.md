@@ -35,8 +35,9 @@ Here's what the inputs and switches do:
 		This way you can get gate signals of varying peak values.
 		Try modulating 'int' with a simple LFO while in this mode for fun times.
 	r:	Simplifies the input to fuck.
-		For those interested, this basically rounds the decimal signal value to and integer.
-		I don't know why I haven't removed this.
+		For those interested, this basically rounds the decimal signal value to an integer.
+		I don't know why I haven't removed this. 
+		EDIT: It's actually not that bad!
 	c:	Clamp! This module is designed in a way that when the intensity of an output peaks beyond +10v,
 		the output resets and readjusts (to output value - 10v, in a way.)
 		When toggled down, if the intensity of an output peaks, the output stays there and doesn't reset.
