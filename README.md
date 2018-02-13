@@ -61,3 +61,6 @@ Column is a Mixer/Averager. Righthand outputs output the lefthand input signal u
 	X:	When toggled down, if operating as mixer, the lefthand-side inputs are multiplied by the inputs above them (the UPSTREAM inputs).
 		If operating as an averager, the UPSTREAM inputs will act as weights of the lefthand inputs and the module outputs
 		Weighted Averages.
+
+### Can you really make music with these modules? They look boring.
+Yes. [Sort of.](https://co-dependent.bandcamp.com/album/code147)
