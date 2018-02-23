@@ -30,28 +30,26 @@ void ModuleXor::step() {
         outputs[OUTPUT_XOR + i].value = inputs[INPUT_A + i].value == inputs[INPUT_B + i].value ? 0.0 : 10.0;
 }
 
+struct WidgetXor : ModuleWidget {
+    WidgetXor(ModuleXor *module);
+};
 
-WidgetXor::WidgetXor() {
-    ModuleXor *module = new ModuleXor();
-    setModule(module);
+WidgetXor::WidgetXor(ModuleXor *module) : ModuleWidget(module) {
 
-    box.size = Vec(2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Xor.svg")));
-        addChild(panel);
-    }
+    setPanel(SVG::load(assetPlugin(plugin, "res/Xor.svg")));
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
+
+    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
 
     float x = box.size.x / 2.0 - 12, ytop = 45, ystep = 37.5;
     for (int i = 0; i < CHANNELS; ++i) {
-        addInput(createInput<PJ301MPort>(   Vec(x, ytop + ystep * i), module, ModuleXor::INPUT_A + i));
-        addInput(createInput<PJ301MPort>(   Vec(x, ytop + ystep*1 + ystep * i), module, ModuleXor::INPUT_B + i));
-        addOutput(createOutput<PJ301MPort>( Vec(x, ytop + ystep*2 + ystep  * i), module, ModuleXor::OUTPUT_XOR + i));
+        addInput(Port::create<PJ301MPort>(   Vec(x, ytop + ystep * i), Port::INPUT, module, ModuleXor::INPUT_A + i));
+        addInput(Port::create<PJ301MPort>(   Vec(x, ytop + ystep*1 + ystep * i), Port::INPUT, module, ModuleXor::INPUT_B + i));
+        addOutput(Port::create<PJ301MPort>( Vec(x, ytop + ystep*2 + ystep  * i), Port::OUTPUT, module, ModuleXor::OUTPUT_XOR + i));
         ytop += 3 * ystep - 42.5;
     }
 }
 
+Model *modelXor = Model::create<ModuleXor, WidgetXor>(
+    "Qwelk", "XOR", "XOR", UTILITY_TAG, LOGIC_TAG);

@@ -31,26 +31,23 @@ void ModuleOr::step() {
     outputs[OUTPUT_OR].value = gate_on ? 10 : 0;
 }
 
+struct WidgetOr : ModuleWidget {
+    WidgetOr(ModuleOr *module);
+};
 
-WidgetOr::WidgetOr() {
-    ModuleOr *module = new ModuleOr();
-    setModule(module);
+WidgetOr::WidgetOr(ModuleOr *module) : ModuleWidget(module) {
 
-    box.size = Vec(2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Or.svg")));
-        addChild(panel);
-    }
+    setPanel(SVG::load(assetPlugin(plugin, "res/Or.svg")));
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
 
     float x = box.size.x / 2.0 - 12, ytop = 45, ystep = 32.85;
     for (int i = 0; i < CHANNELS; ++i)
-        addInput(createInput<PJ301MPort>(Vec(x, ytop + ystep * i), module, ModuleOr::INPUT_CHANNEL + i));
+        addInput(Port::create<PJ301MPort>(Vec(x, ytop + ystep * i), Port::INPUT, module, ModuleOr::INPUT_CHANNEL + i));
     ytop += 9;
-    addOutput(createOutput<PJ301MPort>( Vec(x, ytop + ystep * CHANNELS), module, ModuleOr::OUTPUT_OR));
+    addOutput(Port::create<PJ301MPort>( Vec(x, ytop + ystep * CHANNELS), Port::OUTPUT, module, ModuleOr::OUTPUT_OR));
 }
 
+Model *modelOr = Model::create<ModuleOr, WidgetOr>(
+    "Qwelk", "OR", "OR", UTILITY_TAG, LOGIC_TAG);

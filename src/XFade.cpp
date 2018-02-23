@@ -33,29 +33,26 @@ void ModuleXFade::step() {
     }
 }
 
+struct WidgetXFade : ModuleWidget {
+    WidgetXFade(ModuleXFade *module);
+};
 
-WidgetXFade::WidgetXFade() {
-    ModuleXFade *module = new ModuleXFade();
-    setModule(module);
+WidgetXFade::WidgetXFade(ModuleXFade *module) : ModuleWidget(module) {
 
-    box.size = Vec(2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/XFade.svg")));
-        addChild(panel);
-    }
+    setPanel(SVG::load(assetPlugin(plugin, "res/XFade.svg")));
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
 
     float x = box.size.x / 2.0 - 12, ytop = 45, ystep = 37.5;
     for (int i = 0; i < CHANNELS; ++i) {
-        addInput(createInput<PJ301MPort>(   Vec(x, ytop + ystep * i), module, ModuleXFade::INPUT_A + i));
-        addInput(createInput<PJ301MPort>(   Vec(x, ytop + ystep*1 + ystep * i), module, ModuleXFade::INPUT_B + i));
-        addInput(createInput<PJ301MPort>(   Vec(x, ytop + ystep*2 + ystep * i), module, ModuleXFade::INPUT_X + i));
-        addOutput(createOutput<PJ301MPort>( Vec(x, ytop + ystep*3 + ystep  * i), module, ModuleXFade::OUTPUT_BLEND + i));
+        addInput(Port::create<PJ301MPort>(   Vec(x, ytop + ystep * i), Port::INPUT, module, ModuleXFade::INPUT_A + i));
+        addInput(Port::create<PJ301MPort>(   Vec(x, ytop + ystep*1 + ystep * i), Port::INPUT, module, ModuleXFade::INPUT_B + i));
+        addInput(Port::create<PJ301MPort>(   Vec(x, ytop + ystep*2 + ystep * i), Port::INPUT, module, ModuleXFade::INPUT_X + i));
+        addOutput(Port::create<PJ301MPort>( Vec(x, ytop + ystep*3 + ystep  * i), Port::OUTPUT, module, ModuleXFade::OUTPUT_BLEND + i));
         ytop += 4 * ystep - 17.5;
     }
 }
 
+Model *modelXFade = Model::create<ModuleXFade, WidgetXFade>(
+    "Qwelk", "XFade", "XFade", UTILITY_TAG);

@@ -4,6 +4,22 @@ using namespace rack;
 
 extern Plugin *plugin;
 
+extern Model *modelAutomaton;
+extern Model *modelByte;
+extern Model *modelChaos;
+extern Model *modelColumn;
+extern Model *modelGate;
+extern Model *modelOr;
+extern Model *modelNot;
+extern Model *modelXor;
+extern Model *modelMix;
+extern Model *modelNews;
+extern Model *modelScaler;
+extern Model *modelWrap;
+extern Model *modelXFade;
+
+/*
+
 struct WidgetAutomaton : ModuleWidget {
     WidgetAutomaton();
     Menu *createContextMenu() override;
@@ -57,3 +73,4 @@ struct WidgetGate : ModuleWidget {
 struct WidgetWrap : ModuleWidget {
     WidgetWrap();
 };
+*/

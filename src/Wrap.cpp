@@ -40,28 +40,26 @@ void ModuleWrap::step() {
     }
 }
 
-WidgetWrap::WidgetWrap() {
-    ModuleWrap *module = new ModuleWrap();
-    setModule(module);
+struct WidgetWrap : ModuleWidget {
+    WidgetWrap(ModuleWrap *module);
+};
 
-    box.size = Vec(4 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Wrap.svg")));
-        addChild(panel);
-    }
+WidgetWrap::WidgetWrap(ModuleWrap *module) : ModuleWidget(module) {
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
+    setPanel(SVG::load(assetPlugin(plugin, "res/Wrap.svg")));
+
+    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
 
     float x = box.size.x / 2.0 - 25, ytop = 60, ystep = 39;
 
-    addInput(createInput<PJ301MPort>(Vec(17.5, 30), module, ModuleWrap::IN_WRAP));
+    addInput(Port::create<PJ301MPort>(Vec(17.5, 30), Port::INPUT, module, ModuleWrap::IN_WRAP));
     
     for (int i = 0; i < CHANNELS; ++i) {
-        addInput(createInput<PJ301MPort>(   Vec(x       , ytop + ystep * i), module, ModuleWrap::IN_SIG  + i));
-        addOutput(createOutput<PJ301MPort>( Vec(x + 26  , ytop + ystep * i), module, ModuleWrap::OUT_WRAPPED + i));
+        addInput(Port::create<PJ301MPort>(   Vec(x       , ytop + ystep * i), Port::INPUT, module, ModuleWrap::IN_SIG  + i));
+        addOutput(Port::create<PJ301MPort>( Vec(x + 26  , ytop + ystep * i), Port::OUTPUT, module, ModuleWrap::OUT_WRAPPED + i));
     }
 }
 
+Model *modelWrap = Model::create<ModuleWrap, WidgetWrap>(
+    "Qwelk", "Wrap", "Wrap", UTILITY_TAG);

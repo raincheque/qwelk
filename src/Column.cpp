@@ -66,34 +66,29 @@ void ModuleColumn::step()
     }
 }
 
+struct WidgetColumn : ModuleWidget {
+    WidgetColumn(ModuleColumn *module);
+    Menu *createContextMenu() override;
+};
 
-WidgetColumn::WidgetColumn()
-{
-    ModuleColumn *module = new ModuleColumn();
-    setModule(module);
+WidgetColumn::WidgetColumn(ModuleColumn *module) : ModuleWidget(module) {
 
-    box.size = Vec(4 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Column.svg")));
-        addChild(panel);
-    }
+    setPanel(SVG::load(assetPlugin(plugin, "res/Column.svg")));
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
 
-    addParam(createParam<CKSS>(Vec(3.5, 30), module, ModuleColumn::PARAM_AVG, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(42, 30), module, ModuleColumn::PARAM_WEIGHTED, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<CKSS>(Vec(3.5, 30), module, ModuleColumn::PARAM_AVG, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<CKSS>(Vec(42, 30), module, ModuleColumn::PARAM_WEIGHTED, 0.0, 1.0, 1.0));
 
     float x = 2.5, xstep = 15, ystep = 23.5;
     for (int i = 0; i < CHANNELS; ++i)
     {
         float y = 80 + i * 80;
-        addInput(createInput<PJ301MPort>(Vec(x + xstep, y - ystep), module, ModuleColumn::IN_UPSTREAM + i));
-        addOutput(createOutput<PJ301MPort>(Vec(x + xstep*2, y), module, ModuleColumn::OUT_SIDE + i));
-        addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleColumn::IN_SIG + i));
-        addOutput(createOutput<PJ301MPort>(Vec(x + xstep, y + ystep), module, ModuleColumn::OUT_DOWNSTREAM + i));
+        addInput(Port::create<PJ301MPort>(Vec(x + xstep, y - ystep), Port::INPUT, module, ModuleColumn::IN_UPSTREAM + i));
+        addOutput(Port::create<PJ301MPort>(Vec(x + xstep*2, y), Port::OUTPUT, module, ModuleColumn::OUT_SIDE + i));
+        addInput(Port::create<PJ301MPort>(Vec(x, y), Port::INPUT, module, ModuleColumn::IN_SIG + i));
+        addOutput(Port::create<PJ301MPort>(Vec(x + xstep, y + ystep), Port::OUTPUT, module, ModuleColumn::OUT_DOWNSTREAM + i));
     }
 }
 
@@ -126,3 +121,6 @@ Menu *WidgetColumn::createContextMenu()
 
     return menu;
 }
+
+Model *modelColumn = Model::create<ModuleColumn, WidgetColumn>(
+    "Qwelk", "Column", "Column", MIXER_TAG);

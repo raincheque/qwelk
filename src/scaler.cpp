@@ -35,32 +35,30 @@ void ModuleScaler::step() {
     outputs[OUTPUT_ADD_5].value = inputs[INPUT_ADD_5].normalize(outputs[OUTPUT_DIV_2].value) + 5.0;
 }
 
+struct WidgetScaler : ModuleWidget {
+    WidgetScaler(ModuleScaler *module);
+};
 
-WidgetScaler::WidgetScaler() {
-    ModuleScaler *module = new ModuleScaler();
-    setModule(module);
+WidgetScaler::WidgetScaler(ModuleScaler *module) : ModuleWidget(module) {
 
-    box.size = Vec(2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Scaler.svg")));
-        addChild(panel);
-    }
+    setPanel(SVG::load(assetPlugin(plugin, "res/Scaler.svg")));
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
 
     float x = box.size.x / 2.0 - 12, y = 0, ytop = 30, ystep = 30, mstep = 16;
-    addInput(createInput<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), module, ModuleScaler::INPUT_SUB_5));
-    addOutput(createOutput<PJ301MPort>( Vec(x, ytop + (y+=ystep)), module, ModuleScaler::OUTPUT_SUB_5));
+    addInput(Port::create<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), Port::INPUT, module, ModuleScaler::INPUT_SUB_5));
+    addOutput(Port::create<PJ301MPort>( Vec(x, ytop + (y+=ystep)), Port::OUTPUT, module, ModuleScaler::OUTPUT_SUB_5));
     ytop += mstep;
-    addInput(createInput<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), module, ModuleScaler::INPUT_MUL_2));
-    addOutput(createOutput<PJ301MPort>( Vec(x, ytop + (y+=ystep)), module, ModuleScaler::OUTPUT_MUL_2));
+    addInput(Port::create<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), Port::INPUT, module, ModuleScaler::INPUT_MUL_2));
+    addOutput(Port::create<PJ301MPort>( Vec(x, ytop + (y+=ystep)), Port::OUTPUT, module, ModuleScaler::OUTPUT_MUL_2));
     ytop += mstep;
-    addInput(createInput<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), module, ModuleScaler::INPUT_DIV_2));
-    addOutput(createOutput<PJ301MPort>( Vec(x, ytop + (y+=ystep)), module, ModuleScaler::OUTPUT_DIV_2));
+    addInput(Port::create<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), Port::INPUT, module, ModuleScaler::INPUT_DIV_2));
+    addOutput(Port::create<PJ301MPort>( Vec(x, ytop + (y+=ystep)), Port::OUTPUT, module, ModuleScaler::OUTPUT_DIV_2));
     ytop += mstep;
-    addInput(createInput<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), module, ModuleScaler::INPUT_ADD_5));
-    addOutput(createOutput<PJ301MPort>( Vec(x, ytop + (y+=ystep)), module, ModuleScaler::OUTPUT_ADD_5));
+    addInput(Port::create<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), Port::INPUT, module, ModuleScaler::INPUT_ADD_5));
+    addOutput(Port::create<PJ301MPort>( Vec(x, ytop + (y+=ystep)), Port::OUTPUT, module, ModuleScaler::OUTPUT_ADD_5));
 }
+
+Model *modelScaler = Model::create<ModuleScaler, WidgetScaler>(
+    "Qwelk", "Scaler", "Scaler", UTILITY_TAG);

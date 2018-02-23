@@ -5,10 +5,24 @@ Plugin *plugin;
 void init(rack::Plugin *p) {
     plugin = p;
 	// This is the unique identifier for your plugin
-	p->slug = "Qwelk";
-#ifdef VERSION
+	p->slug = TOSTRING(SLUG);
 	p->version = TOSTRING(VERSION);
-#endif
+
+    p->addModel(modelAutomaton);
+    p->addModel(modelByte);
+    p->addModel(modelChaos);
+    p->addModel(modelColumn);
+    p->addModel(modelGate);
+    p->addModel(modelOr);
+    p->addModel(modelNot);
+    p->addModel(modelXor);
+    p->addModel(modelMix);
+    p->addModel(modelNews);
+    p->addModel(modelScaler);
+    p->addModel(modelWrap);
+    p->addModel(modelXFade);
+
+/*
 	p->website = "https://github.com/raincheque/qwelk";
 	// p->manual = "https://github.com/VCVRack/Tutorial/blob/master/README.md";
 
@@ -26,7 +40,7 @@ void init(rack::Plugin *p) {
     p->addModel(createModel<WidgetOr>("Qwelk", "OR", "OR", UTILITY_TAG, LOGIC_TAG));
     p->addModel(createModel<WidgetNot>("Qwelk", "NOT", "NOT", UTILITY_TAG, LOGIC_TAG));
     p->addModel(createModel<WidgetXor>("Qwelk", "XOR", "XOR", UTILITY_TAG, LOGIC_TAG));
-    
+*/    
 	// Any other plugin initialization may go here.
 	// As an alternative, consider lazy-loading assets and lookup tables when your module is created to reduce startup times of Rack.
 }
