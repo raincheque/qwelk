@@ -55,4 +55,4 @@ WidgetXFade::WidgetXFade(ModuleXFade *module) : ModuleWidget(module) {
 }
 
 Model *modelXFade = Model::create<ModuleXFade, WidgetXFade>(
-    "Qwelk", "XFade", "XFade", UTILITY_TAG);
+    TOSTRING(SLUG), "XFade", "XFade", UTILITY_TAG);

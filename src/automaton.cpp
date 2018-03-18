@@ -244,7 +244,7 @@ Menu *WidgetAutomaton::createContextMenu()
     Menu *menu = ModuleWidget::createContextMenu();
 
     MenuLabel *spacer = new MenuLabel();
-    menu->pushChild(spacer);
+    menu->addChild(spacer);
 
     ModuleAutomaton *automaton = dynamic_cast<ModuleAutomaton *>(module);
     assert(automaton);
@@ -252,10 +252,10 @@ Menu *WidgetAutomaton::createContextMenu()
     MenuItemFun *item = new MenuItemFun();
     item->text = "FUN";
     item->automaton = automaton;
-    menu->pushChild(item);
+    menu->addChild(item);
 
     return menu;
 }
 
 Model *modelAutomaton = Model::create<ModuleAutomaton, WidgetAutomaton>(
-    "Qwelk", "Automaton", "Automaton", SEQUENCER_TAG);
+    TOSTRING(SLUG), "Automaton", "Automaton", SEQUENCER_TAG);

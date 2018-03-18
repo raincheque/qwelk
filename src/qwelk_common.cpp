@@ -4,10 +4,10 @@
 using namespace rack;
 
 
-TinyKnob::TinyKnob()
-{
-    box.size = Vec(20, 20);
-}
+// TinyKnob::TinyKnob()
+// {
+//     box.size = Vec(20, 20);
+// }
 
 
 byte minb(byte a, byte b) {return a < b ? a : b;}

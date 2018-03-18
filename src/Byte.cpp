@@ -110,4 +110,4 @@ WidgetByte::WidgetByte(ModuleByte *module) : ModuleWidget(module) {
 }
 
 Model *modelByte = Model::create<ModuleByte, WidgetByte>(
-    "Qwelk", "Byte", "Byte", UTILITY_TAG, LOGIC_TAG);
+    TOSTRING(SLUG), "Byte", "Byte", UTILITY_TAG, LOGIC_TAG);

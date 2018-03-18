@@ -38,11 +38,11 @@ struct ModuleMix : Module {
     ModuleMix() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     void step() override;
 };
-static inline float max(float a, float b) {return a < b ? b : a;}
+static inline float _max(float a, float b) {return a < b ? b : a;}
 void ModuleMix::step() {
     if (inputs[IN_L].active && inputs[IN_R].active) {
-        float iam = max(inputs[IN_GAIN_M].value, 0.f) / 10.0;
-        float ias = max(inputs[IN_GAIN_S].value, 0.f) / 10.0;
+        float iam = _max(inputs[IN_GAIN_M].value, 0.f) / 10.0;
+        float ias = _max(inputs[IN_GAIN_S].value, 0.f) / 10.0;
         float ams = params[PARAM_GAIN_MS].value;
         float am = inputs[IN_GAIN_M].active ? params[PARAM_GAIN_M].value * iam : params[PARAM_GAIN_M].value;
         float as = inputs[IN_GAIN_S].active ? params[PARAM_GAIN_S].value * ias : params[PARAM_GAIN_S].value;
@@ -54,8 +54,8 @@ void ModuleMix::step() {
         outputs[OUT_S].value = s * ams * as;
     }
     if (inputs[IN_M].active && inputs[IN_S].active) {
-        float ial = max(inputs[IN_GAIN_L].value, 0.f) / 10.0;
-        float iar = max(inputs[IN_GAIN_R].value, 0.f) / 10.0;
+        float ial = _max(inputs[IN_GAIN_L].value, 0.f) / 10.0;
+        float iar = _max(inputs[IN_GAIN_R].value, 0.f) / 10.0;
         float alr = params[PARAM_GAIN_LR].value;
         float al = inputs[IN_GAIN_L].active ? params[PARAM_GAIN_L].value * ial : params[PARAM_GAIN_L].value;
         float ar = inputs[IN_GAIN_R].active ? params[PARAM_GAIN_R].value * iar : params[PARAM_GAIN_R].value;
@@ -84,7 +84,7 @@ WidgetMix::WidgetMix(ModuleMix *module) : ModuleWidget(module) {
     addInput(Port::create<PJ301MPort>(Vec(x     ,   25), Port::INPUT, module, ModuleMix::IN_L));
     addInput(Port::create<PJ301MPort>(Vec(x + 30,   25), Port::INPUT, module, ModuleMix::IN_R));
     
-    addParam(ParamWidget::create<RoundSmallBlackKnob>(Vec(x + 28,  55), module, ModuleMix::PARAM_GAIN_MS, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<SmallKnob>(Vec(x + 28,  55), module, ModuleMix::PARAM_GAIN_MS, 0.0, 1.0, 1.0));
 
     addParam(ParamWidget::create<TinyKnob>(Vec(x    , 90), module, ModuleMix::PARAM_GAIN_M, 0.0, 1.0, 1.0));
     addInput(Port::create<PJ301MPort>(Vec(x + 30  , 88), Port::INPUT, module, ModuleMix::IN_GAIN_M));
@@ -97,7 +97,7 @@ WidgetMix::WidgetMix(ModuleMix *module) : ModuleWidget(module) {
     addInput(Port::create<PJ301MPort>(Vec(x     , 210), Port::INPUT, module, ModuleMix::IN_M));
     addInput(Port::create<PJ301MPort>(Vec(x + 30, 210), Port::INPUT, module, ModuleMix::IN_S));
 
-    addParam(ParamWidget::create<RoundSmallBlackKnob>(Vec(x + 28,  240), module, ModuleMix::PARAM_GAIN_LR, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<SmallKnob>(Vec(x + 28,  240), module, ModuleMix::PARAM_GAIN_LR, 0.0, 1.0, 1.0));
 
     addParam(ParamWidget::create<TinyKnob>(Vec(x    , 275), module, ModuleMix::PARAM_GAIN_L, 0.0, 1.0, 1.0));
     addInput(Port::create<PJ301MPort>(Vec(x + 30  , 273), Port::INPUT, module, ModuleMix::IN_GAIN_L));
@@ -109,4 +109,4 @@ WidgetMix::WidgetMix(ModuleMix *module) : ModuleWidget(module) {
 }
 
 Model *modelMix = Model::create<ModuleMix, WidgetMix>(
-    "Qwelk", "Mix", "Mix", UTILITY_TAG, MIXER_TAG, AMPLIFIER_TAG);
+    TOSTRING(SLUG), "Mix", "Mix", UTILITY_TAG, MIXER_TAG, AMPLIFIER_TAG);

@@ -50,4 +50,4 @@ WidgetOr::WidgetOr(ModuleOr *module) : ModuleWidget(module) {
 }
 
 Model *modelOr = Model::create<ModuleOr, WidgetOr>(
-    "Qwelk", "OR", "OR", UTILITY_TAG, LOGIC_TAG);
+    TOSTRING(SLUG), "OR", "OR", UTILITY_TAG, LOGIC_TAG);

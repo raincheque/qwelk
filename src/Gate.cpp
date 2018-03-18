@@ -61,4 +61,4 @@ WidgetGate::WidgetGate(ModuleGate *module) : ModuleWidget(module) {
 }
 
 Model *modelGate = Model::create<ModuleGate, WidgetGate>(
-"Qwelk", "Gate", "Gate", UTILITY_TAG, ATTENUATOR_TAG);
+    TOSTRING(SLUG), "Gate", "Gate", UTILITY_TAG, ATTENUATOR_TAG);

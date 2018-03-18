@@ -62,4 +62,4 @@ WidgetWrap::WidgetWrap(ModuleWrap *module) : ModuleWidget(module) {
 }
 
 Model *modelWrap = Model::create<ModuleWrap, WidgetWrap>(
-    "Qwelk", "Wrap", "Wrap", UTILITY_TAG);
+    TOSTRING(SLUG), "Wrap", "Wrap", UTILITY_TAG);

@@ -109,7 +109,7 @@ Menu *WidgetColumn::createContextMenu()
     Menu *menu = ModuleWidget::createContextMenu();
 
     MenuLabel *spacer = new MenuLabel();
-    menu->pushChild(spacer);
+    menu->addChild(spacer);
 
     ModuleColumn *column = dynamic_cast<ModuleColumn *>(module);
     assert(column);
@@ -117,10 +117,10 @@ Menu *WidgetColumn::createContextMenu()
     MenuItemAllowNegWeights *item = new MenuItemAllowNegWeights();
     item->text = "Allow Negative Weights";
     item->col  = column;
-    menu->pushChild(item);
+    menu->addChild(item);
 
     return menu;
 }
 
 Model *modelColumn = Model::create<ModuleColumn, WidgetColumn>(
-    "Qwelk", "Column", "Column", MIXER_TAG);
+    TOSTRING(SLUG), "Column", "Column", MIXER_TAG);

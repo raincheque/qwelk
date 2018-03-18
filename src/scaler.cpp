@@ -61,4 +61,4 @@ WidgetScaler::WidgetScaler(ModuleScaler *module) : ModuleWidget(module) {
 }
 
 Model *modelScaler = Model::create<ModuleScaler, WidgetScaler>(
-    "Qwelk", "Scaler", "Scaler", UTILITY_TAG);
+    TOSTRING(SLUG), "Scaler", "Scaler", UTILITY_TAG);

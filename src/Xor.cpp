@@ -52,4 +52,4 @@ WidgetXor::WidgetXor(ModuleXor *module) : ModuleWidget(module) {
 }
 
 Model *modelXor = Model::create<ModuleXor, WidgetXor>(
-    "Qwelk", "XOR", "XOR", UTILITY_TAG, LOGIC_TAG);
+    TOSTRING(SLUG), "XOR", "XOR", UTILITY_TAG, LOGIC_TAG);

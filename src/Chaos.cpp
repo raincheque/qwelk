@@ -301,7 +301,7 @@ Menu *WidgetChaos::createContextMenu()
     Menu *menu = ModuleWidget::createContextMenu();
 
     MenuLabel *spacer = new MenuLabel();
-    menu->pushChild(spacer);
+    menu->addChild(spacer);
 
     ModuleChaos *chaos = dynamic_cast<ModuleChaos *>(module);
     assert(chaos);
@@ -309,10 +309,10 @@ Menu *WidgetChaos::createContextMenu()
     MenuItemFun *item = new MenuItemFun();
     item->text = "FUN";
     item->chaos = chaos;
-    menu->pushChild(item);
+    menu->addChild(item);
 
     return menu;
 }
 
 Model *modelChaos = Model::create<ModuleChaos, WidgetChaos>(
-    "Qwelk", "Chaos", "Chaos", SEQUENCER_TAG);
+    TOSTRING(SLUG), "Chaos", "Chaos", SEQUENCER_TAG);

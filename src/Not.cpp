@@ -49,4 +49,4 @@ WidgetNot::WidgetNot(ModuleNot *module) : ModuleWidget(module) {
 }
 
 Model *modelNot = Model::create<ModuleNot, WidgetNot>(
-    "Qwelk", "NOT", "NOT", UTILITY_TAG, LOGIC_TAG);
+    TOSTRING(SLUG), "NOT", "NOT", UTILITY_TAG, LOGIC_TAG);

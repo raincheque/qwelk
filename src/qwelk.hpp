@@ -18,6 +18,18 @@ extern Model *modelScaler;
 extern Model *modelWrap;
 extern Model *modelXFade;
 
+struct TinyKnob : RoundKnob {
+    TinyKnob() {
+        setSVG(SVG::load(assetPlugin(plugin, "res/TinyKnob.svg")));
+    }
+};
+
+struct SmallKnob : RoundKnob {
+    SmallKnob() {
+        setSVG(SVG::load(assetPlugin(plugin, "res/SmallKnob.svg")));
+    }
+};
+
 /*
 
 struct WidgetAutomaton : ModuleWidget {
