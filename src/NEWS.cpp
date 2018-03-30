@@ -1,5 +1,5 @@
 #include "dsp/digital.hpp"
-#include "math.hpp"
+#include "util/math.hpp"
 #include "qwelk.hpp"
 #include "qwelk_common.h"
 
@@ -113,7 +113,8 @@ void ModuleNews::step()
         grid[i] = 0;
 
     // determine origin
-    origin = mini(origin + floor(in_origin * GSIZE), GSIZE);
+    /*origin = min(origin + floor(in_origin * GSIZE), GSIZE );*/ // v0.6 breakage
+    origin = min(origin + (int)floor(in_origin * GSIZE), GSIZE );
     int cy = origin / GWIDTH,
         cx = origin % GWIDTH;
 
@@ -176,48 +177,46 @@ struct CellLight : _BASE {
     }
 };
 
-WidgetNews::WidgetNews()
-{
-    ModuleNews *module = new ModuleNews();
-    setModule(module);
+struct WidgetNews : ModuleWidget {
+    WidgetNews(ModuleNews *module);
+};
 
-    box.size = Vec(9 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/NEWS.svg")));
-        addChild(panel);
-    }
+WidgetNews::WidgetNews(ModuleNews *module) : ModuleWidget(module) {
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
+    setPanel(SVG::load(assetPlugin(plugin, "res/NEWS.svg")));
+
+    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 30, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
+    addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 30, 365)));
 
 
-    addInput(createInput<PJ301MPort>(Vec(9 , 30), module, ModuleNews::IN_HOLD));
-    addInput(createInput<PJ301MPort>(Vec(9 , 65), module, ModuleNews::IN_NEWS));
+    addInput(Port::create<PJ301MPort>(Vec(9 , 30), Port::INPUT, module, ModuleNews::IN_HOLD));
+    addInput(Port::create<PJ301MPort>(Vec(9 , 65), Port::INPUT, module, ModuleNews::IN_NEWS));
     
-    addInput(createInput<PJ301MPort>(Vec(39 , 65), module, ModuleNews::IN_ORIGIN));
-    addParam(createParam<TinyKnob>(Vec(41.6, 32.5), module, ModuleNews::PARAM_ORIGIN, 0.0, GSIZE, GMID));
-    addInput(createInput<PJ301MPort>(Vec(69 , 65), module, ModuleNews::IN_INTENSITY));
-    addParam(createParam<TinyKnob>(Vec(71.1 , 32.5), module, ModuleNews::PARAM_INTENSITY, 1.0, 256.0, 1.0));
-    addInput(createInput<PJ301MPort>(Vec(99, 65), module, ModuleNews::IN_WRAP));
-    addParam(createParam<TinyKnob>(Vec(101, 32.5), module, ModuleNews::PARAM_WRAP, -31.0, 32.0, 0.0));
+    addInput(Port::create<PJ301MPort>(Vec(39 , 65), Port::INPUT, module, ModuleNews::IN_ORIGIN));
+    addParam(ParamWidget::create<TinyKnob>(Vec(41.6, 32.5), module, ModuleNews::PARAM_ORIGIN, 0.0, GSIZE, GMID));
+    addInput(Port::create<PJ301MPort>(Vec(69 , 65), Port::INPUT, module, ModuleNews::IN_INTENSITY));
+    addParam(ParamWidget::create<TinyKnob>(Vec(71.1 , 32.5), module, ModuleNews::PARAM_INTENSITY, 1.0, 256.0, 1.0));
+    addInput(Port::create<PJ301MPort>(Vec(99, 65), Port::INPUT, module, ModuleNews::IN_WRAP));
+    addParam(ParamWidget::create<TinyKnob>(Vec(101, 32.5), module, ModuleNews::PARAM_WRAP, -31.0, 32.0, 0.0));
 
     const float out_ytop = 92.5;
     for (int y = 0; y < GHEIGHT; ++y)
         for (int x = 0; x < GWIDTH; ++x) {
             int i = x + y * GWIDTH;
-            addChild(createLight<CellLight<GreenLight>>(Vec(7 + x * 30 - 0.2, out_ytop + y * 30 - 0.1), module, ModuleNews::LIGHT_GRID + i));
-            addOutput(createOutput<PJ301MPort>(Vec(7 + x * 30 + 2, out_ytop + y * 30 + 2), module, ModuleNews::OUT_CELL + i));
+            addChild(ModuleLightWidget::create<CellLight<GreenLight>>(Vec(7 + x * 30 - 0.2, out_ytop + y * 30 - 0.1), module, ModuleNews::LIGHT_GRID + i));
+            addOutput(Port::create<PJ301MPort>(Vec(7 + x * 30 + 2, out_ytop + y * 30 + 2), Port::OUTPUT, module, ModuleNews::OUT_CELL + i));
         }
 
     const float bottom_row = 345;
-    addParam(createParam<CKSS>(Vec(5        , bottom_row), module, ModuleNews::PARAM_UNI_BI, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(25       , bottom_row), module, ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(45       , bottom_row), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(65       , bottom_row), module, ModuleNews::PARAM_ROUND, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(85       , bottom_row), module, ModuleNews::PARAM_CLAMP, 0.0, 1.0, 1.0));
-    addParam(createParam<TinyKnob>(Vec(110  , bottom_row), module, ModuleNews::PARAM_SMOOTH, 0.0, 1.0, 0.0));
+    addParam(ParamWidget::create<CKSS>(Vec(5        , bottom_row), module, ModuleNews::PARAM_UNI_BI, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<CKSS>(Vec(25       , bottom_row), module, ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<CKSS>(Vec(45       , bottom_row), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<CKSS>(Vec(65       , bottom_row), module, ModuleNews::PARAM_ROUND, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<CKSS>(Vec(85       , bottom_row), module, ModuleNews::PARAM_CLAMP, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<TinyKnob>(Vec(110  , bottom_row), module, ModuleNews::PARAM_SMOOTH, 0.0, 1.0, 0.0));
 }
+
+Model *modelNews = Model::create<ModuleNews, WidgetNews>(
+    TOSTRING(SLUG), "NEWS", "NEWS", SEQUENCER_TAG);

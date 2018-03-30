@@ -38,11 +38,11 @@ struct ModuleMix : Module {
     ModuleMix() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     void step() override;
 };
-static inline float max(float a, float b) {return a < b ? b : a;}
+static inline float _max(float a, float b) {return a < b ? b : a;}
 void ModuleMix::step() {
     if (inputs[IN_L].active && inputs[IN_R].active) {
-        float iam = max(inputs[IN_GAIN_M].value, 0) / 10.0;
-        float ias = max(inputs[IN_GAIN_S].value, 0) / 10.0;
+        float iam = _max(inputs[IN_GAIN_M].value, 0.f) / 10.0;
+        float ias = _max(inputs[IN_GAIN_S].value, 0.f) / 10.0;
         float ams = params[PARAM_GAIN_MS].value;
         float am = inputs[IN_GAIN_M].active ? params[PARAM_GAIN_M].value * iam : params[PARAM_GAIN_M].value;
         float as = inputs[IN_GAIN_S].active ? params[PARAM_GAIN_S].value * ias : params[PARAM_GAIN_S].value;
@@ -54,8 +54,8 @@ void ModuleMix::step() {
         outputs[OUT_S].value = s * ams * as;
     }
     if (inputs[IN_M].active && inputs[IN_S].active) {
-        float ial = max(inputs[IN_GAIN_L].value, 0) / 10.0;
-        float iar = max(inputs[IN_GAIN_R].value, 0) / 10.0;
+        float ial = _max(inputs[IN_GAIN_L].value, 0.f) / 10.0;
+        float iar = _max(inputs[IN_GAIN_R].value, 0.f) / 10.0;
         float alr = params[PARAM_GAIN_LR].value;
         float al = inputs[IN_GAIN_L].active ? params[PARAM_GAIN_L].value * ial : params[PARAM_GAIN_L].value;
         float ar = inputs[IN_GAIN_R].active ? params[PARAM_GAIN_R].value * iar : params[PARAM_GAIN_R].value;
@@ -68,46 +68,45 @@ void ModuleMix::step() {
     }
 }
 
-WidgetMix::WidgetMix() {
-    ModuleMix *module = new ModuleMix();
-    setModule(module);
+struct WidgetMix : ModuleWidget {
+    WidgetMix(ModuleMix *module);
+};
 
-    box.size = Vec(4 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Mix.svg")));
-        addChild(panel);
-    }
+WidgetMix::WidgetMix(ModuleMix *module) : ModuleWidget(module) {
 
-    addChild(createScrew<ScrewSilver>(Vec(5, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(5, 365)));
+    setPanel(SVG::load(assetPlugin(plugin, "res/Mix.svg")));
+
+    addChild(Widget::create<ScrewSilver>(Vec(5, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(5, 365)));
 
     float x = box.size.x / 2.0 - 27;
     
-    addInput(createInput<PJ301MPort>(Vec(x     ,   25), module, ModuleMix::IN_L));
-    addInput(createInput<PJ301MPort>(Vec(x + 30,   25), module, ModuleMix::IN_R));
+    addInput(Port::create<PJ301MPort>(Vec(x     ,   25), Port::INPUT, module, ModuleMix::IN_L));
+    addInput(Port::create<PJ301MPort>(Vec(x + 30,   25), Port::INPUT, module, ModuleMix::IN_R));
     
-    addParam(createParam<RoundSmallBlackKnob>(Vec(x + 28,  55), module, ModuleMix::PARAM_GAIN_MS, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<SmallKnob>(Vec(x + 28,  55), module, ModuleMix::PARAM_GAIN_MS, 0.0, 1.0, 1.0));
 
-    addParam(createParam<TinyKnob>(Vec(x    , 90), module, ModuleMix::PARAM_GAIN_M, 0.0, 1.0, 1.0));
-    addInput(createInput<PJ301MPort>(Vec(x + 30  , 88), module, ModuleMix::IN_GAIN_M));
-    addOutput(createOutput<PJ301MPort>(Vec(x + 30, 113), module, ModuleMix::OUT_M));
+    addParam(ParamWidget::create<TinyKnob>(Vec(x    , 90), module, ModuleMix::PARAM_GAIN_M, 0.0, 1.0, 1.0));
+    addInput(Port::create<PJ301MPort>(Vec(x + 30  , 88), Port::INPUT, module, ModuleMix::IN_GAIN_M));
+    addOutput(Port::create<PJ301MPort>(Vec(x + 30, 113), Port::OUTPUT, module, ModuleMix::OUT_M));
 
-    addParam(createParam<TinyKnob>(Vec(x    , 147), module, ModuleMix::PARAM_GAIN_S, 0.0, 1.0, 1.0));
-    addInput(createInput<PJ301MPort>(Vec(x + 30  , 145), module, ModuleMix::IN_GAIN_S));
-    addOutput(createOutput<PJ301MPort>(Vec(x + 30, 169), module, ModuleMix::OUT_S));
+    addParam(ParamWidget::create<TinyKnob>(Vec(x    , 147), module, ModuleMix::PARAM_GAIN_S, 0.0, 1.0, 1.0));
+    addInput(Port::create<PJ301MPort>(Vec(x + 30  , 145), Port::INPUT, module, ModuleMix::IN_GAIN_S));
+    addOutput(Port::create<PJ301MPort>(Vec(x + 30, 169), Port::OUTPUT, module, ModuleMix::OUT_S));
 
-    addInput(createInput<PJ301MPort>(Vec(x     , 210), module, ModuleMix::IN_M));
-    addInput(createInput<PJ301MPort>(Vec(x + 30, 210), module, ModuleMix::IN_S));
+    addInput(Port::create<PJ301MPort>(Vec(x     , 210), Port::INPUT, module, ModuleMix::IN_M));
+    addInput(Port::create<PJ301MPort>(Vec(x + 30, 210), Port::INPUT, module, ModuleMix::IN_S));
 
-    addParam(createParam<RoundSmallBlackKnob>(Vec(x + 28,  240), module, ModuleMix::PARAM_GAIN_LR, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<SmallKnob>(Vec(x + 28,  240), module, ModuleMix::PARAM_GAIN_LR, 0.0, 1.0, 1.0));
 
-    addParam(createParam<TinyKnob>(Vec(x    , 275), module, ModuleMix::PARAM_GAIN_L, 0.0, 1.0, 1.0));
-    addInput(createInput<PJ301MPort>(Vec(x + 30  , 273), module, ModuleMix::IN_GAIN_L));
-    addOutput(createOutput<PJ301MPort>(Vec(x + 30, 298), module, ModuleMix::OUT_L));
+    addParam(ParamWidget::create<TinyKnob>(Vec(x    , 275), module, ModuleMix::PARAM_GAIN_L, 0.0, 1.0, 1.0));
+    addInput(Port::create<PJ301MPort>(Vec(x + 30  , 273), Port::INPUT, module, ModuleMix::IN_GAIN_L));
+    addOutput(Port::create<PJ301MPort>(Vec(x + 30, 298), Port::OUTPUT, module, ModuleMix::OUT_L));
 
-    addParam(createParam<TinyKnob>(Vec(x    , 332), module, ModuleMix::PARAM_GAIN_R, 0.0, 1.0, 1.0));
-    addInput(createInput<PJ301MPort>(Vec(x + 30  , 330), module, ModuleMix::IN_GAIN_R));
-    addOutput(createOutput<PJ301MPort>(Vec(x + 30, 355), module, ModuleMix::OUT_R));
+    addParam(ParamWidget::create<TinyKnob>(Vec(x    , 332), module, ModuleMix::PARAM_GAIN_R, 0.0, 1.0, 1.0));
+    addInput(Port::create<PJ301MPort>(Vec(x + 30  , 330), Port::INPUT, module, ModuleMix::IN_GAIN_R));
+    addOutput(Port::create<PJ301MPort>(Vec(x + 30, 355), Port::OUTPUT, module, ModuleMix::OUT_R));
 }
+
+Model *modelMix = Model::create<ModuleMix, WidgetMix>(
+    TOSTRING(SLUG), "Mix", "Mix", UTILITY_TAG, MIXER_TAG, AMPLIFIER_TAG);

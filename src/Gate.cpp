@@ -39,28 +39,26 @@ void ModuleGate::step() {
     }
 }
 
-WidgetGate::WidgetGate() {
-    ModuleGate *module = new ModuleGate();
-    setModule(module);
+struct WidgetGate : ModuleWidget {
+    WidgetGate(ModuleGate *module);
+};
 
-    box.size = Vec(2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Gate.svg")));
-        addChild(panel);
-    }
+WidgetGate::WidgetGate(ModuleGate *module) : ModuleWidget(module) {
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
+    setPanel(SVG::load(assetPlugin(plugin, "res/Gate.svg")));
+
+    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
 
     for (int i = 0; i < CHANNELS; ++i) {
         float x = 2.5, top = 45 + i * 158;
-        addParam(createParam<CKSS>(         Vec(x + 5.7, top +   8), module, ModuleGate::PARAM_GATEMODE + i, 0.0, 1.0, 1.0));
-        addParam(createParam<TinyKnob>(Vec(x + 2.5, top +  40), module, ModuleGate::PARAM_THRESHOLD + i, -10.0, 10.0, 0));
-        addInput(createInput<PJ301MPort>(   Vec(x      , top +  63), module, ModuleGate::IN_SIG + i));
-        addParam(createParam<TinyKnob>(Vec(x + 2.5, top + 102), module, ModuleGate::PARAM_OUTGAIN + i, -1.0, 1.0, 1.0));
-        addOutput(createOutput<PJ301MPort>( Vec(x      , top + 125), module, ModuleGate::OUT_GATE + i));
+        addParam(ParamWidget::create<CKSS>(         Vec(x + 5.7, top +   8), module, ModuleGate::PARAM_GATEMODE + i, 0.0, 1.0, 1.0));
+        addParam(ParamWidget::create<TinyKnob>(Vec(x + 2.5, top +  40), module, ModuleGate::PARAM_THRESHOLD + i, -10.0, 10.0, 0));
+        addInput(Port::create<PJ301MPort>(   Vec(x      , top +  63), Port::INPUT, module, ModuleGate::IN_SIG + i));
+        addParam(ParamWidget::create<TinyKnob>(Vec(x + 2.5, top + 102), module, ModuleGate::PARAM_OUTGAIN + i, -1.0, 1.0, 1.0));
+        addOutput(Port::create<PJ301MPort>( Vec(x      , top + 125), Port::OUTPUT, module, ModuleGate::OUT_GATE + i));
     }
 }
 
+Model *modelGate = Model::create<ModuleGate, WidgetGate>(
+    TOSTRING(SLUG), "Gate", "Gate", UTILITY_TAG, ATTENUATOR_TAG);
