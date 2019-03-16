@@ -1,8 +1,8 @@
 #include "dsp/digital.hpp"
 #include "dsp/functions.hpp"
 #include "util/math.hpp"
-//#include "util.hpp"
 #include "qwelk.hpp"
+#include "qwelk_common.h"
 
 
 #define COMPONENTS 8
@@ -152,12 +152,6 @@ void ModuleIndra::step()
     outputs[OUT_SUM].value = (ta > 0 ? tv / ta : 0) * 5.0 * ma;
 }
 
-struct RoundTinyKnob : RoundBlackKnob {
-	RoundTinyKnob()
-    {
-		box.size = Vec(20, 20);
-	}
-};
 
 struct SlidePot : SVGSlider {
 	SlidePot() {
@@ -175,39 +169,34 @@ struct SlidePot : SVGSlider {
 	}
 };
 
-WidgetIndra::WidgetIndra() {
-    ModuleIndra *module = new ModuleIndra();
-    setModule(module);
+struct WidgetIndra : ModuleWidget {
+    WidgetIndra(ModuleIndra *module);
+	Menu *createContextMenu() override;
+};
 
-    box.size = Vec(16 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Indra.svg")));
-        addChild(panel);
-    }
-
-    addChild(createScrew<ScrewSilver>(Vec(10, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 20, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(10, 365)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 20, 365)));
+WidgetIndra::WidgetIndra(ModuleIndra *module) : ModuleWidget(module) {
+	setPanel(SVG::load(assetPlugin(plugin, "res/Indra.svg")));
+    addChild(Widget::create<ScrewSilver>(Vec(10, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 20, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(10, 365)));
+    addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 20, 365)));
 
     const float knob_x = 3;
     float x = 2.5, y = 42, top = 0;
 
-    addInput(createInput<PJ301MPort>    (Vec(x,                 y), module, ModuleIndra::IN_PITCH));
-    addParam(createParam<RoundTinyKnob> (Vec(x + knob_x,        y - 22), module, ModuleIndra::PARAM_PITCH, -54.0, 54.0, 0.0));
+    addInput(Port::create<PJ301MPort>(Vec(x, y), Port::INPUT, module, ModuleIndra::IN_PITCH));
+    addParam(ParamWidget::create<TinyKnob> (Vec(x + knob_x,        y - 22), module, ModuleIndra::PARAM_PITCH, -54.0, 54.0, 0.0));
     
-    addInput(createInput<PJ301MPort>    (Vec(x +  50,           y), module, ModuleIndra::IN_FM));
-    addParam(createParam<RoundTinyKnob> (Vec(x +  50 + knob_x,  y - 22), module, ModuleIndra::PARAM_FM, 0.0, 1.0, 0.0));
+    addInput(Port::create<PJ301MPort>(Vec(x +  50, y), Port::INPUT, module, ModuleIndra::IN_FM));
+    addParam(ParamWidget::create<TinyKnob> (Vec(x +  50 + knob_x,  y - 22), module, ModuleIndra::PARAM_FM, 0.0, 1.0, 0.0));
     
-    addInput(createInput<PJ301MPort>    (Vec(x +  105,          y), module, ModuleIndra::IN_RESET));
+    addInput(Port::create<PJ301MPort>(Vec(x +  105,          y), Port::INPUT, module, ModuleIndra::IN_RESET));
 
-    addInput(createInput<PJ301MPort>    (Vec(x +  157,          y), module, ModuleIndra::IN_SPREAD));
-    addParam(createParam<RoundTinyKnob> (Vec(x +  157 + knob_x, y - 22), module, ModuleIndra::PARAM_SPREAD, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>          (Vec(x +  195,          y - 22), module, ModuleIndra::PARAM_CLEAN, 0.0, 1.0, 1.0));
-    addInput(createInput<PJ301MPort>    (Vec(x +  210,          y), module, ModuleIndra::IN_WRAP));
-    addParam(createParam<RoundTinyKnob> (Vec(x +  210 + knob_x, y - 22), module, ModuleIndra::PARAM_WRAP, 0.0, COMPONENTS - 1, 0.0));
+    addInput(Port::create<PJ301MPort>(Vec(x +  157,          y), Port::INPUT, module, ModuleIndra::IN_SPREAD));
+    addParam(ParamWidget::create<TinyKnob> (Vec(x +  157 + knob_x, y - 22), module, ModuleIndra::PARAM_SPREAD, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<CKSS>          (Vec(x +  195,          y - 22), module, ModuleIndra::PARAM_CLEAN, 0.0, 1.0, 1.0));
+    addInput(Port::create<PJ301MPort>(Vec(x +  210,          y), Port::INPUT, module, ModuleIndra::IN_WRAP));
+    addParam(ParamWidget::create<TinyKnob> (Vec(x +  210 + knob_x, y - 22), module, ModuleIndra::PARAM_WRAP, 0.0, COMPONENTS - 1, 0.0));
 
     auto sum_pos = Vec(box.size.x / 2 - 12.5, 350);
     addOutput(createOutput<PJ301MPort>(sum_pos, module, ModuleIndra::OUT_SUM));
@@ -216,24 +205,24 @@ WidgetIndra::WidgetIndra() {
     for (int i = 0; i < COMPONENTS; ++i) {
         y = top + 80;
         x = 2 + 30 * i;
-        addParam(createParam<RoundTinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_CFM + i, 0, 1, 0));
+        addParam(ParamWidget::create<TinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_CFM + i, 0, 1, 0));
         y += 22;
-        addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_CFM + i));
+        addInput(Port::create<PJ301MPort>(Vec(x, y), Port::INPUT, module, ModuleIndra::IN_CFM + i));
         y += 38;
         
-        addParam(createParam<RoundTinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_PHASESLEW + i, 0, 1, 0));
+        addParam(ParamWidget::create<TinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_PHASESLEW + i, 0, 1, 0));
         y += 22;
-        addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_PHASE + i));
+        addInput(Port::create<PJ301MPort>(Vec(x, y), Port::INPUT, module, ModuleIndra::IN_PHASE + i));
         y += 35;
         
-        addParam(createParam<SlidePot>(Vec(x + 5, y), module, ModuleIndra::PARAM_AMP + i, 0, 1, 1));
+        addParam(ParamWidget::create<SlidePot>(Vec(x + 5, y), module, ModuleIndra::PARAM_AMP + i, 0, 1, 1));
         y += 63;
-        addParam(createParam<RoundTinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_AMPSLEW + i, 0, 1, 0));
+        addParam(ParamWidget::create<TinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_AMPSLEW + i, 0, 1, 0));
         y += 22;
-        addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_AMP + i));
+        addInput(Port::create<PJ301MPort>(Vec(x, y), Port::INPUT, module, ModuleIndra::IN_AMP + i));
         y += 30;
         
-        addOutput(createOutput<PJ301MPort>(Vec(x, y), module, ModuleIndra::OUT_COMPONENT + i));
+        addOutput(Port::create<PJ301MPort>(Vec(x, y), Port::OUTPUT, module, ModuleIndra::OUT_COMPONENT + i));
     }
 }
 
@@ -254,7 +243,7 @@ Menu *WidgetIndra::createContextMenu()
     Menu *menu = ModuleWidget::createContextMenu();
 
     MenuLabel *spacer = new MenuLabel();
-    menu->pushChild(spacer);
+    menu->addChild(spacer);
 
     ModuleIndra *indra = dynamic_cast<ModuleIndra *>(module);
     assert(indra);
@@ -262,7 +251,10 @@ Menu *WidgetIndra::createContextMenu()
     MenuItemAttenuateComponentOuts *item = new MenuItemAttenuateComponentOuts();
     item->text = "Attenuate Component Outs";
     item->indra = indra;
-    menu->pushChild(item);
+    menu->addChild(item);
 
     return menu;
 }
+
+Model *modelIndra = Model::create<ModuleIndra, WidgetIndra>(
+    TOSTRING(SLUG), "Indra's Net", "Indra's Net", OSCILLATOR_TAG);
