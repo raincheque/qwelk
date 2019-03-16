@@ -1,5 +1,5 @@
 #include "dsp/digital.hpp"
-#include "math.hpp"
+#include "util/math.hpp"
 #include "qwelk.hpp"
 
 
@@ -42,7 +42,7 @@ struct ModuleByte : Module {
 void ModuleByte::step()
 {
     // determine scan direction
-    int scan_input_sign = (int)sgnf(inputs[INPUT_SCAN].normalize(scan));
+    int scan_input_sign = (int)sgn(inputs[INPUT_SCAN].normalize(scan));
     if (scan_input_sign != scan_sign) 
         scan = scan_sign = scan_input_sign;
     // manual tinkering with step?
@@ -77,40 +77,37 @@ struct MuteLight : _BASE {
     }
 };
 
+struct WidgetByte : ModuleWidget {
+    WidgetByte(ModuleByte *module);
+};
 
-WidgetByte::WidgetByte()
-{
-    ModuleByte *module = new ModuleByte();
-    setModule(module);
 
-    box.size = Vec(2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Byte.svg")));
-        addChild(panel);
-    }
+WidgetByte::WidgetByte(ModuleByte *module) : ModuleWidget(module) {
 
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
+    setPanel(SVG::load(assetPlugin(plugin, "res/Byte.svg")));
+
+    addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 30, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 30, 365)));
  
     const float ypad = 27.5;
     float x = box.size.x / 2.0 - 25.0 / 2.0;
     float ytop = 90.5;
 
-    addParam(createParam<LEDBezel>(Vec(x + 1.5, ytop - ypad * 2 - 3.5), module, ModuleByte::PARAM_SCAN, 0.0, 1.0, 0.0));
-    addChild(createLight<MuteLight<GreenRedLight>>(Vec(x + 3.75, ytop - ypad * 2 + - 3.5 + 2), module, ModuleByte::LIGHT_POS_SCAN));
-    addInput(createInput<PJ301MPort>(Vec(x, ytop - ypad + 1), module, ModuleByte::INPUT_SCAN));
+    addParam(ParamWidget::create<LEDBezel>(Vec(x + 1.5, ytop - ypad * 2 - 3.5), module, ModuleByte::PARAM_SCAN, 0.0, 1.0, 0.0));
+    addChild(ModuleLightWidget::create<MuteLight<GreenRedLight>>(Vec(x + 3.75, ytop - ypad * 2 + - 3.5 + 2), module, ModuleByte::LIGHT_POS_SCAN));
+    addInput(Port::create<PJ301MPort>(Vec(x, ytop - ypad + 1), Port::INPUT, module, ModuleByte::INPUT_SCAN));
     //ytop += ypad * 0.25;
     
     for (int i = 0; i < CHANNELS; ++i) {
-        addInput(createInput<PJ301MPort>(Vec(x, ytop + ypad * i), module, ModuleByte::INPUT_GATE + i));
+        addInput(Port::create<PJ301MPort>(Vec(x, ytop + ypad * i), Port::INPUT, module, ModuleByte::INPUT_GATE + i));
     }
     //ytop += ypad * 0.25;
     
     const float output_y = ytop + ypad * CHANNELS;
 
-    addOutput(createOutput<PJ301MPort>(Vec(x, output_y        ), module, ModuleByte::OUTPUT_NUMBER));
-    addOutput(createOutput<PJ301MPort>(Vec(x, output_y + ypad ), module, ModuleByte::OUTPUT_COUNT));
+    addOutput(Port::create<PJ301MPort>(Vec(x, output_y        ), Port::OUTPUT, module, ModuleByte::OUTPUT_NUMBER));
+    addOutput(Port::create<PJ301MPort>(Vec(x, output_y + ypad ), Port::OUTPUT, module, ModuleByte::OUTPUT_COUNT));
 }
 
+Model *modelByte = Model::create<ModuleByte, WidgetByte>(
+    TOSTRING(SLUG), "Byte", "Byte", UTILITY_TAG, LOGIC_TAG);

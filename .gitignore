@@ -1,2 +1,4 @@
+/dist
 /build
 /plugin.dll
+/test_patches

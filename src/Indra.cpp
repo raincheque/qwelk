@@ -1,6 +1,7 @@
 #include "dsp/digital.hpp"
-#include "math.hpp"
-#include "util.hpp"
+#include "dsp/functions.hpp"
+#include "util/math.hpp"
+//#include "util.hpp"
 #include "qwelk.hpp"
 
 
@@ -60,12 +61,12 @@ static void _slew(float *v, float i, float sa, float min, float max)
     float shape = 0.25;
     if (i > *v) {
         float s = max * powf(min / max, sa);
-        *v += s * crossf(1.0, (1/10.0) * (i - *v), shape) / engineGetSampleRate();
+        *v += s * crossfade(1.0, (1/10.0) * (i - *v), shape) / engineGetSampleRate();
         if (*v > i)
             *v = i;
     } else if (i < *v) {
         float s = max * powf(min / max, sa);
-        *v -= s * crossf(1.0, (1/10.0) * (*v - i), shape) / engineGetSampleRate();
+        *v -= s * crossfade(1.0, (1/10.0) * (*v - i), shape) / engineGetSampleRate();
         if (*v < i)
             *v = i;
     }
@@ -81,12 +82,12 @@ void ModuleIndra::step()
     
     float spread;
     if (inputs[IN_SPREAD].active)
-        spread = (clampf(inputs[IN_SPREAD].value, 0.0, 10.0) / 10.0) * params[PARAM_SPREAD].value;
+        spread = (clamp2(inputs[IN_SPREAD].value, 0.0f, 10.0f) / 10.0f) * params[PARAM_SPREAD].value;
     else
         spread = params[PARAM_SPREAD].value;
 
     int wrap = (int)params[PARAM_WRAP].value;
-    wrap = wrap + (int)((inputs[IN_WRAP].value / 10.0) * (float)COMPONENTS);
+    wrap = wrap + (int)((inputs[IN_WRAP].value / 10.0f) * (float)COMPONENTS);
                
     float k = params[PARAM_PITCH].value;
     float p = k + 12.0 * inputs[IN_PITCH].value;
@@ -99,7 +100,7 @@ void ModuleIndra::step()
         
         if (inputs[IN_PHASE + i].active) {
             float sa = params[PARAM_PHASESLEW + i].value;
-            float ip = clampf(inputs[IN_PHASE + i].value, 0, 10.0) / 10.0;
+            float ip = clamp2(inputs[IN_PHASE + i].value, 0.0f, 10.0f) / 10.0;
             _slew(offset + i, ip, sa, slew_min, slew_max);
         }
 
@@ -107,7 +108,7 @@ void ModuleIndra::step()
         a += params[PARAM_AMP + i].value;
         if (inputs[IN_AMP + i].active) {
             float sa = params[PARAM_AMPSLEW + i].value;
-            float ia = clampf(inputs[IN_AMP + i].value, 0, 10.0) / 10.0;
+            float ia = clamp2(inputs[IN_AMP + i].value, 0.0f, 10.0f) / 10.0;
             ia = ia * (1.0 - params[PARAM_AMP + i].value);
             _slew(amp + i, ia, sa, slew_min, slew_max);
             

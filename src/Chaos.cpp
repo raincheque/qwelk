@@ -1,5 +1,5 @@
 #include "dsp/digital.hpp"
-#include "math.hpp"
+#include "util/math.hpp"
 #include "qwelk.hpp"
 
 
@@ -46,6 +46,7 @@ struct ModuleChaos : Module {
         NUM_LIGHTS = LIGHT_MUTE + CHANNELS * 2
     };
 
+    int             fun = 0;
     int             scan = 1;
     int             scan_sign = 0;
     SchmittTrigger  trig_step_input;
@@ -65,47 +66,53 @@ struct ModuleChaos : Module {
     void step() override;
     
     json_t *toJson() override {
-		json_t *rootJ = json_object();
+        json_t *rootJ = json_object();
 
-		json_object_set_new(rootJ, "scan", json_integer(scan));
+        json_object_set_new(rootJ, "scan", json_integer(scan));
+        json_object_set_new(rootJ, "fun", json_integer(fun));
 
-		json_t *statesJ = json_array();
-		for (int i = 0; i < CHANNELS*2; i++) {
-			json_t *stateJ = json_integer(states[i]);
-			json_array_append_new(statesJ, stateJ);
-		}
-		json_object_set_new(rootJ, "states", statesJ);
+        json_t *statesJ = json_array();
+        for (int i = 0; i < CHANNELS*2; i++) {
+            json_t *stateJ = json_integer(states[i]);
+            json_array_append_new(statesJ, stateJ);
+        }
+        json_object_set_new(rootJ, "states", statesJ);
 
-		return rootJ;
-	}
+        return rootJ;
+    }
 
-	void fromJson(json_t *rootJ) override {
-		json_t *scanJ = json_object_get(rootJ, "scan");
-		if (scanJ)
-			scan = json_integer_value(scanJ);
+    void fromJson(json_t *rootJ) override {
+        json_t *scanJ = json_object_get(rootJ, "scan");
+        if (scanJ)
+            scan = json_integer_value(scanJ);
 
-		// gates
-		json_t *statesJ = json_object_get(rootJ, "states");
-		if (statesJ) {
-			for (int i = 0; i < 8; i++) {
-				json_t *gateJ = json_array_get(statesJ, i);
-				if (gateJ)
-					states[i] = json_integer_value(gateJ);
-			}
-		}
-	}
+        json_t *funJ = json_object_get(rootJ, "fun");
+        if (funJ)
+            fun = json_integer_value(funJ);
+        
+        // gates
+        json_t *statesJ = json_object_get(rootJ, "states");
+        if (statesJ) {
+            for (int i = 0; i < 8; i++) {
+                json_t *gateJ = json_array_get(statesJ, i);
+                if (gateJ)
+                    states[i] = json_integer_value(gateJ);
+            }
+        }
+    }
 
-	void reset() override {
+    void reset() override {
+        fun = 0;
         scan = 1;
-		for (int i = 0; i < CHANNELS * 2; i++)
-			states[i] = 0;
-	}
+        for (int i = 0; i < CHANNELS * 2; i++)
+            states[i] = 0;
+    }
 
-	void randomize() override {
-        scan = (randomf() > 0.5) ? 1 : -1;
-		for (int i = 0; i < CHANNELS; i++)
-			states[i] = (randomf() > 0.5);
-	}
+    void randomize() override {
+        scan = (randomUniform() > 0.5) ? 1 : -1;
+        for (int i = 0; i < CHANNELS; i++)
+            states[i] = (randomUniform() > 0.5);
+    }
 };
 
 void ModuleChaos::step()
@@ -116,7 +123,7 @@ void ModuleChaos::step()
         nextstep = 1;
 
     // determine scan direction
-    int scan_input_sign = (int)sgnf(inputs[INPUT_SCAN].normalize(scan));
+    int scan_input_sign = (int)sgn(inputs[INPUT_SCAN].normalize(scan));
     if (scan_input_sign != scan_sign) 
         scan = scan_sign = scan_input_sign;
     // manual tinkering with step?
@@ -137,7 +144,7 @@ void ModuleChaos::step()
             int sum = 0;
             int tl  = i == 0 ? CHANNELS - 1 : i - 1;
             int tm  = i;
-            int tr  = i < CHANNELS - 1 ? i + 1: 0;
+            int tr  = i < CHANNELS - 1 ? i + (1 - fun): 0;
             sum |= states[CHANNELS + tr] ? (1 << 0) : 0;
             sum |= states[CHANNELS + tm] ? (1 << 1) : 0;
             sum |= states[CHANNELS + tl] ? (1 << 2) : 0;
@@ -217,24 +224,19 @@ struct MuteLight : _BASE {
     }
 };
 
+struct WidgetChaos : ModuleWidget {
+    WidgetChaos(ModuleChaos *module);
+    Menu *createContextMenu() override;
+};
 
-WidgetChaos::WidgetChaos()
-{
-    ModuleChaos *module = new ModuleChaos();
-    setModule(module);
+WidgetChaos::WidgetChaos(ModuleChaos *module) : ModuleWidget(module) {
 
-    box.size = Vec(16 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Chaos.svg")));
-        addChild(panel);
-    }
+    setPanel(SVG::load(assetPlugin(plugin, "res/Chaos.svg")));
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 30, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
+    addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 30, 365)));
  
     const float ypad = 27.5;
     const float tlpy = 1.75;
@@ -244,40 +246,73 @@ WidgetChaos::WidgetChaos()
     
     float ytop = 55;
 
-    addInput(createInput<PJ301MPort>(               Vec(lghx - dist * 3             , ytop - ypad         ), module, ModuleChaos::INPUT_SCAN));
-    addParam(createParam<LEDBezel>(                 Vec(lghx - dist * 2             , ytop - ypad         ), module, ModuleChaos::PARAM_SCAN, 0.0, 1.0, 0.0));
-    addChild(createLight<MuteLight<GreenRedLight>>( Vec(lghx - dist * 2 +  tlpx     , ytop - ypad + tlpy  ), module, ModuleChaos::LIGHT_POS_SCAN));
+    addInput(Port::create<PJ301MPort>(               Vec(lghx - dist * 3             , ytop - ypad         ), Port::INPUT, module, ModuleChaos::INPUT_SCAN));
+    addParam(ParamWidget::create<LEDBezel>(                 Vec(lghx - dist * 2             , ytop - ypad         ), module, ModuleChaos::PARAM_SCAN, 0.0, 1.0, 0.0));
+    addChild(ModuleLightWidget::create<MuteLight<GreenRedLight>>( Vec(lghx - dist * 2 +  tlpx     , ytop - ypad + tlpy  ), module, ModuleChaos::LIGHT_POS_SCAN));
 
     ytop += ypad;
     
-    addInput(createInput<PJ301MPort>(           Vec(lghx - dist * 3         , ytop - ypad         ), module, ModuleChaos::INPUT_STEP));
-    addParam(createParam<LEDBezel>(             Vec(lghx - dist * 2         , ytop - ypad         ), module, ModuleChaos::PARAM_STEP, 0.0, 1.0, 0.0));
-    addChild(createLight<MuteLight<GreenLight>>(Vec(lghx - dist * 2 +  tlpx , ytop - ypad + tlpy  ), module, ModuleChaos::LIGHT_STEP));
+    addInput(Port::create<PJ301MPort>(           Vec(lghx - dist * 3         , ytop - ypad         ), Port::INPUT, module, ModuleChaos::INPUT_STEP));
+    addParam(ParamWidget::create<LEDBezel>(             Vec(lghx - dist * 2         , ytop - ypad         ), module, ModuleChaos::PARAM_STEP, 0.0, 1.0, 0.0));
+    addChild(ModuleLightWidget::create<MuteLight<GreenLight>>(Vec(lghx - dist * 2 +  tlpx , ytop - ypad + tlpy  ), module, ModuleChaos::LIGHT_STEP));
     
     for (int i = 0; i < CHANNELS; ++i) {
-        addInput(createInput<PJ301MPort>(           Vec(lghx - dist * 3     , ytop + ypad * i       ), module, ModuleChaos::INPUT_RULE + i));
-        addInput(createInput<PJ301MPort>(           Vec(lghx - dist * 2     , ytop + ypad * i       ), module, ModuleChaos::INPUT_TRIG + i));
-        addParam(createParam<LEDBezel>(             Vec(lghx - dist         , ytop + ypad * i       ), module, ModuleChaos::PARAM_CELL + i, 0.0, 1.0, 0.0));
-        addChild(createLight<MuteLight<GreenLight>>(Vec(lghx - dist + tlpx  , ytop + ypad * i + tlpy), module, ModuleChaos::LIGHT_MUTE + i));
-        addParam(createParam<LEDBezel>(             Vec(lghx                , ytop + ypad * i       ), module, ModuleChaos::PARAM_CELL + CHANNELS + i, 0.0, 1.0, 0.0));
-        addChild(createLight<MuteLight<GreenLight>>(Vec(lghx + tlpx         , ytop + ypad * i + tlpy), module, ModuleChaos::LIGHT_MUTE + CHANNELS + i));
-        addOutput(createOutput<PJ301MPort>(         Vec(lghx + dist         , ytop + ypad * i       ), module, ModuleChaos::OUTPUT_GATE_A + i));
-        addOutput(createOutput<PJ301MPort>(         Vec(lghx + dist * 2     , ytop + ypad * i       ), module, ModuleChaos::OUTPUT_GATE_B + i));
-        addOutput(createOutput<PJ301MPort>(         Vec(lghx + dist * 3     , ytop + ypad * i       ), module, ModuleChaos::OUTPUT_GATE_AND + i));
-        addOutput(createOutput<PJ301MPort>(         Vec(lghx + dist * 4     , ytop + ypad * i       ), module, ModuleChaos::OUTPUT_GATE_XOR + i));
-        addOutput(createOutput<PJ301MPort>(         Vec(lghx + dist * 5     , ytop + ypad * i       ), module, ModuleChaos::OUTPUT_GATE_OR + i));
+        addInput(Port::create<PJ301MPort>(           Vec(lghx - dist * 3     , ytop + ypad * i       ), Port::INPUT, module, ModuleChaos::INPUT_RULE + i));
+        addInput(Port::create<PJ301MPort>(           Vec(lghx - dist * 2     , ytop + ypad * i       ), Port::INPUT, module, ModuleChaos::INPUT_TRIG + i));
+        addParam(ParamWidget::create<LEDBezel>(             Vec(lghx - dist         , ytop + ypad * i       ), module, ModuleChaos::PARAM_CELL + i, 0.0, 1.0, 0.0));
+        addChild(ModuleLightWidget::create<MuteLight<GreenLight>>(Vec(lghx - dist + tlpx  , ytop + ypad * i + tlpy), module, ModuleChaos::LIGHT_MUTE + i));
+        addParam(ParamWidget::create<LEDBezel>(             Vec(lghx                , ytop + ypad * i       ), module, ModuleChaos::PARAM_CELL + CHANNELS + i, 0.0, 1.0, 0.0));
+        addChild(ModuleLightWidget::create<MuteLight<GreenLight>>(Vec(lghx + tlpx         , ytop + ypad * i + tlpy), module, ModuleChaos::LIGHT_MUTE + CHANNELS + i));
+        addOutput(Port::create<PJ301MPort>(         Vec(lghx + dist         , ytop + ypad * i       ), Port::OUTPUT, module, ModuleChaos::OUTPUT_GATE_A + i));
+        addOutput(Port::create<PJ301MPort>(         Vec(lghx + dist * 2     , ytop + ypad * i       ), Port::OUTPUT, module, ModuleChaos::OUTPUT_GATE_B + i));
+        addOutput(Port::create<PJ301MPort>(         Vec(lghx + dist * 3     , ytop + ypad * i       ), Port::OUTPUT, module, ModuleChaos::OUTPUT_GATE_AND + i));
+        addOutput(Port::create<PJ301MPort>(         Vec(lghx + dist * 4     , ytop + ypad * i       ), Port::OUTPUT, module, ModuleChaos::OUTPUT_GATE_XOR + i));
+        addOutput(Port::create<PJ301MPort>(         Vec(lghx + dist * 5     , ytop + ypad * i       ), Port::OUTPUT, module, ModuleChaos::OUTPUT_GATE_OR + i));
     }
     
     const float output_y = ytop + ypad * CHANNELS;
-    addOutput(createOutput<PJ301MPort>(Vec(lghx + dist      , output_y        ), module, ModuleChaos::OUTPUT_NUMBER_A));
-    addOutput(createOutput<PJ301MPort>(Vec(lghx + dist      , output_y + ypad ), module, ModuleChaos::OUTPUT_COUNT_A));
-    addOutput(createOutput<PJ301MPort>(Vec(lghx + dist  * 2 , output_y        ), module, ModuleChaos::OUTPUT_NUMBER_B));
-    addOutput(createOutput<PJ301MPort>(Vec(lghx + dist  * 2 , output_y + ypad ), module, ModuleChaos::OUTPUT_COUNT_B));
-    addOutput(createOutput<PJ301MPort>(Vec(lghx + dist  * 3 , output_y        ), module, ModuleChaos::OUTPUT_NUMBER_AND));
-    addOutput(createOutput<PJ301MPort>(Vec(lghx + dist  * 3 , output_y + ypad ), module, ModuleChaos::OUTPUT_COUNT_AND));
-    addOutput(createOutput<PJ301MPort>(Vec(lghx + dist  * 4 , output_y        ), module, ModuleChaos::OUTPUT_NUMBER_XOR));
-    addOutput(createOutput<PJ301MPort>(Vec(lghx + dist  * 4 , output_y + ypad ), module, ModuleChaos::OUTPUT_COUNT_XOR));
-    addOutput(createOutput<PJ301MPort>(Vec(lghx + dist  * 5 , output_y        ), module, ModuleChaos::OUTPUT_NUMBER_OR));
-    addOutput(createOutput<PJ301MPort>(Vec(lghx + dist  * 5 , output_y + ypad ), module, ModuleChaos::OUTPUT_COUNT_OR));
+    addOutput(Port::create<PJ301MPort>(Vec(lghx + dist      , output_y        ), Port::OUTPUT, module, ModuleChaos::OUTPUT_NUMBER_A));
+    addOutput(Port::create<PJ301MPort>(Vec(lghx + dist      , output_y + ypad ), Port::OUTPUT, module, ModuleChaos::OUTPUT_COUNT_A));
+    addOutput(Port::create<PJ301MPort>(Vec(lghx + dist  * 2 , output_y        ), Port::OUTPUT, module, ModuleChaos::OUTPUT_NUMBER_B));
+    addOutput(Port::create<PJ301MPort>(Vec(lghx + dist  * 2 , output_y + ypad ), Port::OUTPUT, module, ModuleChaos::OUTPUT_COUNT_B));
+    addOutput(Port::create<PJ301MPort>(Vec(lghx + dist  * 3 , output_y        ), Port::OUTPUT, module, ModuleChaos::OUTPUT_NUMBER_AND));
+    addOutput(Port::create<PJ301MPort>(Vec(lghx + dist  * 3 , output_y + ypad ), Port::OUTPUT, module, ModuleChaos::OUTPUT_COUNT_AND));
+    addOutput(Port::create<PJ301MPort>(Vec(lghx + dist  * 4 , output_y        ), Port::OUTPUT, module, ModuleChaos::OUTPUT_NUMBER_XOR));
+    addOutput(Port::create<PJ301MPort>(Vec(lghx + dist  * 4 , output_y + ypad ), Port::OUTPUT, module, ModuleChaos::OUTPUT_COUNT_XOR));
+    addOutput(Port::create<PJ301MPort>(Vec(lghx + dist  * 5 , output_y        ), Port::OUTPUT, module, ModuleChaos::OUTPUT_NUMBER_OR));
+    addOutput(Port::create<PJ301MPort>(Vec(lghx + dist  * 5 , output_y + ypad ), Port::OUTPUT, module, ModuleChaos::OUTPUT_COUNT_OR));
 }
 
+
+struct MenuItemFun : MenuItem {
+    ModuleChaos *chaos;
+    void onAction(EventAction &e) override
+    {
+        chaos->fun ^= 1;
+    }
+    void step () override
+    {
+        rightText = (chaos->fun) ? "✔" : "";
+    }
+};
+
+Menu *WidgetChaos::createContextMenu()
+{
+    Menu *menu = ModuleWidget::createContextMenu();
+
+    MenuLabel *spacer = new MenuLabel();
+    menu->addChild(spacer);
+
+    ModuleChaos *chaos = dynamic_cast<ModuleChaos *>(module);
+    assert(chaos);
+
+    MenuItemFun *item = new MenuItemFun();
+    item->text = "FUN";
+    item->chaos = chaos;
+    menu->addChild(item);
+
+    return menu;
+}
+
+Model *modelChaos = Model::create<ModuleChaos, WidgetChaos>(
+    TOSTRING(SLUG), "Chaos", "Chaos", SEQUENCER_TAG);

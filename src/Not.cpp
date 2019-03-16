@@ -30,26 +30,23 @@ void ModuleNot::step() {
     }
 }
 
+struct WidgetNot : ModuleWidget {
+    WidgetNot(ModuleNot *module);
+};
 
-WidgetNot::WidgetNot() {
-    ModuleNot *module = new ModuleNot();
-    setModule(module);
+WidgetNot::WidgetNot(ModuleNot *module) : ModuleWidget(module) {
 
-    box.size = Vec(4 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
-    {
-        SVGPanel *panel = new SVGPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/Not.svg")));
-        addChild(panel);
-    }
+    setPanel(SVG::load(assetPlugin(plugin, "res/Not.svg")));
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
 
     float x = box.size.x / 2.0 - 25, ytop = 45, ystep = 39;
     for (int i = 0; i < CHANNELS; ++i) {
-        addInput(createInput<PJ301MPort>(   Vec(x       , ytop + ystep * i), module, ModuleNot::INPUT_SIG  + i));
-        addOutput(createOutput<PJ301MPort>( Vec(x + 26  , ytop + ystep * i), module, ModuleNot::OUTPUT_NOT + i));
+        addInput(Port::create<PJ301MPort>(   Vec(x       , ytop + ystep * i), Port::INPUT, module, ModuleNot::INPUT_SIG  + i));
+        addOutput(Port::create<PJ301MPort>( Vec(x + 26  , ytop + ystep * i), Port::OUTPUT, module, ModuleNot::OUTPUT_NOT + i));
     }
 }
 
+Model *modelNot = Model::create<ModuleNot, WidgetNot>(
+    TOSTRING(SLUG), "NOT", "NOT", UTILITY_TAG, LOGIC_TAG);
