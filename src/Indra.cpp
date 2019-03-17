@@ -18,7 +18,9 @@ struct ModuleIndra : Module {
         PARAM_AMP = PARAM_CFM + COMPONENTS,
         PARAM_AMPSLEW = PARAM_AMP + COMPONENTS,
         PARAM_PHASESLEW = PARAM_AMPSLEW + COMPONENTS,
+#if defined(USE_WRAP)
         PARAM_WRAP = PARAM_PHASESLEW + COMPONENTS,
+#endif
 		NUM_PARAMS
 	};
 	enum InputIds {
@@ -29,7 +31,9 @@ struct ModuleIndra : Module {
         IN_AMP = IN_PHASE + COMPONENTS,
         IN_CFM = IN_AMP + COMPONENTS,
         IN_RESET = IN_CFM + COMPONENTS,
+#if defined(USE_WRAP)
         IN_WRAP,
+#endif
 		NUM_INPUTS
 	};
 	enum OutputIds {
@@ -53,20 +57,21 @@ struct ModuleIndra : Module {
         for (int i = 0; i < COMPONENTS; ++i)
             amp[i] = 1.0;
     }
+
     void step() override;
 };
 
 static void _slew(float *v, float i, float sa, float min, float max)
 {
-    float shape = 0.25;
+    float shape = 0.25f;
     if (i > *v) {
         float s = max * powf(min / max, sa);
-        *v += s * crossfade(1.0, (1/10.0) * (i - *v), shape) / engineGetSampleRate();
+        *v += s * crossfade(1.0, (1/10.0f) * (i - *v), shape) / engineGetSampleRate();
         if (*v > i)
             *v = i;
     } else if (i < *v) {
         float s = max * powf(min / max, sa);
-        *v -= s * crossfade(1.0, (1/10.0) * (*v - i), shape) / engineGetSampleRate();
+        *v -= s * crossfade(1.0, (1/10.0f) * (*v - i), shape) / engineGetSampleRate();
         if (*v < i)
             *v = i;
     }
@@ -78,7 +83,7 @@ void ModuleIndra::step()
     const float slew_max = 1000.0;
 
     bool reset = trig_reset.process(inputs[IN_RESET].value);
-    bool clean = params[PARAM_CLEAN].value > 0.0;
+    bool clean = params[PARAM_CLEAN].value > 0.0f;
     
     float spread;
     if (inputs[IN_SPREAD].active)
@@ -86,13 +91,16 @@ void ModuleIndra::step()
     else
         spread = params[PARAM_SPREAD].value;
 
-    int wrap = (int)params[PARAM_WRAP].value;
+    int wrap = 0;
+#if defined(USE_WRAP)
+    wrap = (int)params[PARAM_WRAP].value;
     wrap = wrap + (int)((inputs[IN_WRAP].value / 10.0f) * (float)COMPONENTS);
-               
+#endif
+
     float k = params[PARAM_PITCH].value;
     float p = k + 12.0 * inputs[IN_PITCH].value;
     if (inputs[IN_FM].active)
-        p += quadraticBipolar(params[PARAM_FM].value) * 12.0 * inputs[IN_FM].value;
+        p += quadraticBipolar(params[PARAM_FM].value) * 12.0f * inputs[IN_FM].value;
 
     float tv = 0, ta = 0, ma = 0;
     for (int i = 0; i < COMPONENTS; ++i) {
@@ -100,7 +108,7 @@ void ModuleIndra::step()
         
         if (inputs[IN_PHASE + i].active) {
             float sa = params[PARAM_PHASESLEW + i].value;
-            float ip = clamp2(inputs[IN_PHASE + i].value, 0.0f, 10.0f) / 10.0;
+            float ip = clamp2(inputs[IN_PHASE + i].value, 0.0f, 10.0f) / 10.0f;
             _slew(offset + i, ip, sa, slew_min, slew_max);
         }
 
@@ -108,7 +116,7 @@ void ModuleIndra::step()
         a += params[PARAM_AMP + i].value;
         if (inputs[IN_AMP + i].active) {
             float sa = params[PARAM_AMPSLEW + i].value;
-            float ia = clamp2(inputs[IN_AMP + i].value, 0.0f, 10.0f) / 10.0;
+            float ia = clamp2(inputs[IN_AMP + i].value, 0.0f, 10.0f) / 10.0f;
             ia = ia * (1.0 - params[PARAM_AMP + i].value);
             _slew(amp + i, ia, sa, slew_min, slew_max);
             
@@ -123,12 +131,12 @@ void ModuleIndra::step()
             ma = fabs(a);
 
         if (inputs[IN_CFM + i].active)
-            p += quadraticBipolar(params[PARAM_CFM + i].value) * 12.0 * inputs[IN_CFM + i].value;
+            p += quadraticBipolar(params[PARAM_CFM + i].value) * 12.0f * inputs[IN_CFM + i].value;
         
-        float f = 261.626 * powf(2.0, p / 12.0) * (wrapped * spread + 1);
-        phase[i] += f * (1.0 / engineGetSampleRate());
-        while (phase[i] > 1.0)
-            phase[i] -= 1.0;
+        float f = 261.626f * powf(2.0, p / 12.0) * (wrapped * spread + 1);
+        phase[i] += f * (1.0f / engineGetSampleRate());
+        while (phase[i] > 1.0f)
+            phase[i] -= 1.0f;
 
         float o = offset[i];
         
@@ -149,7 +157,7 @@ void ModuleIndra::step()
         tv += a * v;
     }
 
-    outputs[OUT_SUM].value = (ta > 0 ? tv / ta : 0) * 5.0 * ma;
+    outputs[OUT_SUM].value = (ta > 0 ? tv / ta : 0) * 5.0f * ma;
 }
 
 
@@ -184,19 +192,21 @@ WidgetIndra::WidgetIndra(ModuleIndra *module) : ModuleWidget(module) {
     const float knob_x = 3;
     float x = 2.5, y = 42, top = 0;
 
-    addInput(Port::create<PJ301MPort>(Vec(x, y), Port::INPUT, module, ModuleIndra::IN_PITCH));
-    addParam(ParamWidget::create<TinyKnob> (Vec(x + knob_x,        y - 22), module, ModuleIndra::PARAM_PITCH, -54.0, 54.0, 0.0));
+    addInput(Port::create<PJ301MPort>(      Vec(                x,      y), Port::INPUT, module, ModuleIndra::IN_PITCH));
+    addParam(ParamWidget::create<TinyKnob> (Vec(       x + knob_x, y - 22), module, ModuleIndra::PARAM_PITCH, -54.0, 54.0, 0.0));
     
-    addInput(Port::create<PJ301MPort>(Vec(x +  50, y), Port::INPUT, module, ModuleIndra::IN_FM));
-    addParam(ParamWidget::create<TinyKnob> (Vec(x +  50 + knob_x,  y - 22), module, ModuleIndra::PARAM_FM, 0.0, 1.0, 0.0));
+    addInput(Port::create<PJ301MPort>(      Vec(          x +  50,      y), Port::INPUT, module, ModuleIndra::IN_FM));
+    addParam(ParamWidget::create<TinyKnob> (Vec( x +  50 + knob_x, y - 22), module, ModuleIndra::PARAM_FM, 0.0, 1.0, 0.0));
     
-    addInput(Port::create<PJ301MPort>(Vec(x +  105,          y), Port::INPUT, module, ModuleIndra::IN_RESET));
+    addInput(Port::create<PJ301MPort>(      Vec(         x +  105,      y), Port::INPUT, module, ModuleIndra::IN_RESET));
 
-    addInput(Port::create<PJ301MPort>(Vec(x +  157,          y), Port::INPUT, module, ModuleIndra::IN_SPREAD));
+    addInput(Port::create<PJ301MPort>(      Vec(         x +  157,      y), Port::INPUT, module, ModuleIndra::IN_SPREAD));
     addParam(ParamWidget::create<TinyKnob> (Vec(x +  157 + knob_x, y - 22), module, ModuleIndra::PARAM_SPREAD, 0.0, 1.0, 1.0));
-    addParam(ParamWidget::create<CKSS>          (Vec(x +  195,          y - 22), module, ModuleIndra::PARAM_CLEAN, 0.0, 1.0, 1.0));
-    addInput(Port::create<PJ301MPort>(Vec(x +  210,          y), Port::INPUT, module, ModuleIndra::IN_WRAP));
+    addParam(ParamWidget::create<CKSS>(     Vec(         x +  205, y - 22), module, ModuleIndra::PARAM_CLEAN, 0.0, 1.0, 1.0));
+#if defined(USE_WRAP)
+    addInput(Port::create<PJ301MPort>(      Vec(         x +  210,      y), Port::INPUT, module, ModuleIndra::IN_WRAP));
     addParam(ParamWidget::create<TinyKnob> (Vec(x +  210 + knob_x, y - 22), module, ModuleIndra::PARAM_WRAP, 0.0, COMPONENTS - 1, 0.0));
+#endif
 
     auto sum_pos = Vec(box.size.x / 2 - 12.5, 350);
     addOutput(createOutput<PJ301MPort>(sum_pos, module, ModuleIndra::OUT_SUM));
