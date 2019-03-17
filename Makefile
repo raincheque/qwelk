@@ -1,5 +1,5 @@
 SLUG = Qwelk
-VERSION = 0.6.0
+VERSION = 0.6.1
 
 SOURCES += $(wildcard src/*.cpp)
 
