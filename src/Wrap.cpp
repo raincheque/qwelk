@@ -28,7 +28,7 @@ struct ModuleWrap : Module {
 };
 
 void ModuleWrap::step() {
-    int wrap = (/*clampf(*/inputs[IN_WRAP].value/*, -5.0, 5.0)*/ / 5.0) * (CHANNELS - 1);
+    int wrap = (clamp2(inputs[IN_WRAP].value, -5.0, 5.0) / 5.0) * (CHANNELS - 1);
 
     for (int i = 0; i < CHANNELS; ++i) {
         int w = i;
@@ -56,7 +56,7 @@ WidgetWrap::WidgetWrap(ModuleWrap *module) : ModuleWidget(module) {
     addInput(Port::create<PJ301MPort>(Vec(17.5, 30), Port::INPUT, module, ModuleWrap::IN_WRAP));
     
     for (int i = 0; i < CHANNELS; ++i) {
-        addInput(Port::create<PJ301MPort>(   Vec(x       , ytop + ystep * i), Port::INPUT, module, ModuleWrap::IN_SIG  + i));
+        addInput(Port::create<PJ301MPort>(  Vec(x       , ytop + ystep * i),  Port::INPUT, module, ModuleWrap::IN_SIG  + i));
         addOutput(Port::create<PJ301MPort>( Vec(x + 26  , ytop + ystep * i), Port::OUTPUT, module, ModuleWrap::OUT_WRAPPED + i));
     }
 }
