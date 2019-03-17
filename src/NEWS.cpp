@@ -113,7 +113,6 @@ void ModuleNews::step()
         grid[i] = 0;
 
     // determine origin
-    /*origin = min(origin + floor(in_origin * GSIZE), GSIZE );*/ // v0.6 breakage
     origin = min(origin + (int)floor(in_origin * GSIZE), GSIZE );
     int cy = origin / GWIDTH,
         cx = origin % GWIDTH;
