@@ -1,4 +1,3 @@
-#include "dsp/digital.hpp"
 #include "qwelk.hpp"
 
 #define CHANNELS 8
@@ -20,34 +19,34 @@ struct ModuleOr : Module {
         NUM_LIGHTS
     };
 
-    ModuleOr() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
-    void step() override;
+    ModuleOr() {
+		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);}
+    void process(const ProcessArgs& args) override;
 };
 
-void ModuleOr::step() {
+void ModuleOr::process(const ProcessArgs& args) {
     int gate_on = 0;
     for (int i = 0; !gate_on && i < CHANNELS; ++i)
-        gate_on = inputs[INPUT_CHANNEL + i].value;
-    outputs[OUTPUT_OR].value = gate_on ? 10 : 0;
+        gate_on = inputs[INPUT_CHANNEL + i].getVoltage();
+    outputs[OUTPUT_OR].setVoltage(gate_on ? 10 : 0);
 }
 
 struct WidgetOr : ModuleWidget {
-    WidgetOr(ModuleOr *module);
-};
+  WidgetOr(ModuleOr *module) {
 
-WidgetOr::WidgetOr(ModuleOr *module) : ModuleWidget(module) {
+		setModule(module);
 
-    setPanel(SVG::load(assetPlugin(plugin, "res/Or.svg")));
+    setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Or.svg")));
 
-    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
-    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 0)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 365)));
 
     float x = box.size.x / 2.0 - 12, ytop = 45, ystep = 32.85;
     for (int i = 0; i < CHANNELS; ++i)
-        addInput(Port::create<PJ301MPort>(Vec(x, ytop + ystep * i), Port::INPUT, module, ModuleOr::INPUT_CHANNEL + i));
+        addInput(createInput<PJ301MPort>(Vec(x, ytop + ystep * i), module, ModuleOr::INPUT_CHANNEL + i));
     ytop += 9;
-    addOutput(Port::create<PJ301MPort>( Vec(x, ytop + ystep * CHANNELS), Port::OUTPUT, module, ModuleOr::OUTPUT_OR));
-}
+    addOutput(createOutput<PJ301MPort>( Vec(x, ytop + ystep * CHANNELS), module, ModuleOr::OUTPUT_OR));
+  }
+};
 
-Model *modelOr = Model::create<ModuleOr, WidgetOr>(
-    TOSTRING(SLUG), "OR", "OR", UTILITY_TAG, LOGIC_TAG);
+Model *modelOr = createModel<ModuleOr, WidgetOr>("OR");

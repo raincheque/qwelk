@@ -1,5 +1,3 @@
-#include "dsp/digital.hpp"
-#include "util/math.hpp"
 #include "qwelk.hpp"
 #include "qwelk_common.h"
 
@@ -43,13 +41,24 @@ struct ModuleNews : Module {
     };
 
     float sample;
-    SchmittTrigger trig_hold;
+    dsp::SchmittTrigger trig_hold;
     byte grid[GSIZE] {};
     float buffer[GSIZE] {};
 
-    ModuleNews() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
-    void step() override;
-    
+  ModuleNews() {
+    config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
+    configParam(ModuleNews::PARAM_ORIGIN, 0.0, GSIZE, GMID, "");
+    configParam(ModuleNews::PARAM_INTENSITY, 1.0, 256.0, 1.0, "");
+    configParam(ModuleNews::PARAM_WRAP, -31.0, 32.0, 0.0, "");
+    configParam(ModuleNews::PARAM_UNI_BI, 0.0, 1.0, 1.0, "");
+    configParam(ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0, "");
+    configParam(ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0, "");
+    configParam(ModuleNews::PARAM_ROUND, 0.0, 1.0, 1.0, "");
+    configParam(ModuleNews::PARAM_CLAMP, 0.0, 1.0, 1.0, "");
+    configParam(ModuleNews::PARAM_SMOOTH, 0.0, 1.0, 0.0, "");
+  }
+    void process(const ProcessArgs& args) override;
+
     inline void set(int i, bool gatemode)
     {
         if (gatemode)
@@ -63,32 +72,32 @@ struct ModuleNews : Module {
     }
 };
 
-void ModuleNews::step()
+void ModuleNews::process(const ProcessArgs& args)
 {
-    bool    mode        = params[PARAM_MODE].value > 0.0;
-    bool    gatemode    = params[PARAM_GATEMODE].value > 0.0;
-    bool    round       = params[PARAM_ROUND].value == 0.0;
-    bool    clamp       = params[PARAM_CLAMP].value == 0.0;
-    bool    bi          = params[PARAM_UNI_BI].value == 0.0;
-    byte    intensity   = (byte)(floor(params[PARAM_INTENSITY].value));
-    int     wrap        = floor(params[PARAM_WRAP].value);
-    int     origin      = floor(params[PARAM_ORIGIN].value);
-    float   smooth      = params[PARAM_SMOOTH].value;
+    bool    mode        = params[PARAM_MODE].getValue() > 0.0;
+    bool    gatemode    = params[PARAM_GATEMODE].getValue() > 0.0;
+    bool    round       = params[PARAM_ROUND].getValue() == 0.0;
+    bool    clamp       = params[PARAM_CLAMP].getValue() == 0.0;
+    bool    bi          = params[PARAM_UNI_BI].getValue() == 0.0;
+    byte    intensity   = (byte)(floor(params[PARAM_INTENSITY].getValue()));
+    int     wrap        = floor(params[PARAM_WRAP].getValue());
+    int     origin      = floor(params[PARAM_ORIGIN].getValue());
+    float   smooth      = params[PARAM_SMOOTH].getValue();
 
-    float in_origin     = inputs[IN_ORIGIN].value / 10.0;
-    float in_intensity  = (inputs[IN_INTENSITY].value / 10.0) * 255.0;
-    float in_wrap       = (inputs[IN_WRAP].value / 5.0) * 31.0;
+    float in_origin     = inputs[IN_ORIGIN].getVoltage() / 10.0;
+    float in_intensity  = (inputs[IN_INTENSITY].getVoltage() / 10.0) * 255.0;
+    float in_wrap       = (inputs[IN_WRAP].getVoltage() / 5.0) * 31.0;
 
-    
+
     intensity = minb(intensity + (byte)in_intensity, 255.0);
     wrap = ::clampi(wrap + (int)in_wrap, -31, 31);
 
     // are we doing s&h?
-    if (trig_hold.process(inputs[IN_HOLD].value))
-        sample = inputs[IN_NEWS].value;
+    if (trig_hold.process(inputs[IN_HOLD].getVoltage()))
+        sample = inputs[IN_NEWS].getVoltage();
 
     // read the news, or if s&h is active just the held sample
-    float news = (inputs[IN_HOLD].active) ? sample : inputs[IN_NEWS].value;
+    float news = (inputs[IN_HOLD].isConnected()) ? sample : inputs[IN_NEWS].getVoltage();
 
     // if round switch is down, round off the  input signal to an integer
     if (round)
@@ -102,7 +111,7 @@ void ModuleNews::step()
         wrap = -wrap;
         bits = (bits >> wrap) | (bits << (32 - wrap));
     }
-    
+
     news = *((float *)&bits);
 
     // extract the key out the bits which represent the input signal
@@ -113,7 +122,7 @@ void ModuleNews::step()
         grid[i] = 0;
 
     // determine origin
-    origin = min(origin + (int)floor(in_origin * GSIZE), GSIZE );
+    origin = std::min(origin + (int)floor(in_origin * GSIZE), GSIZE );
     int cy = origin / GWIDTH,
         cx = origin % GWIDTH;
 
@@ -162,7 +171,7 @@ void ModuleNews::step()
 
         buffer[i] = slew(buffer[i], v, smooth, 0.1, 100000.0, 0.5);
 
-        outputs[OUT_CELL + i].value = 10.0 * buffer[i] - (bi ? 5.0 : 0.0);
+        outputs[OUT_CELL + i].setVoltage(10.0 * buffer[i] - (bi ? 5.0 : 0.0));
         lights[LIGHT_GRID + i].setBrightness(buffer[i] * 0.9);
     }
 }
@@ -177,45 +186,43 @@ struct CellLight : _BASE {
 };
 
 struct WidgetNews : ModuleWidget {
-    WidgetNews(ModuleNews *module);
-};
+  WidgetNews(ModuleNews *module) {
+		setModule(module);
 
-WidgetNews::WidgetNews(ModuleNews *module) : ModuleWidget(module) {
+    setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/NEWS.svg")));
 
-    setPanel(SVG::load(assetPlugin(plugin, "res/NEWS.svg")));
-
-    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
-    addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 30, 0)));
-    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
-    addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 30, 365)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 0)));
+    addChild(createWidget<ScrewSilver>(Vec(box.size.x - 30, 0)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 365)));
+    addChild(createWidget<ScrewSilver>(Vec(box.size.x - 30, 365)));
 
 
-    addInput(Port::create<PJ301MPort>(Vec(9 , 30), Port::INPUT, module, ModuleNews::IN_HOLD));
-    addInput(Port::create<PJ301MPort>(Vec(9 , 65), Port::INPUT, module, ModuleNews::IN_NEWS));
-    
-    addInput(Port::create<PJ301MPort>(Vec(39 , 65), Port::INPUT, module, ModuleNews::IN_ORIGIN));
-    addParam(ParamWidget::create<TinyKnob>(Vec(41.6, 32.5), module, ModuleNews::PARAM_ORIGIN, 0.0, GSIZE, GMID));
-    addInput(Port::create<PJ301MPort>(Vec(69 , 65), Port::INPUT, module, ModuleNews::IN_INTENSITY));
-    addParam(ParamWidget::create<TinyKnob>(Vec(71.1 , 32.5), module, ModuleNews::PARAM_INTENSITY, 1.0, 256.0, 1.0));
-    addInput(Port::create<PJ301MPort>(Vec(99, 65), Port::INPUT, module, ModuleNews::IN_WRAP));
-    addParam(ParamWidget::create<TinyKnob>(Vec(101, 32.5), module, ModuleNews::PARAM_WRAP, -31.0, 32.0, 0.0));
+    addInput(createInput<PJ301MPort>(Vec(9 , 30), module, ModuleNews::IN_HOLD));
+    addInput(createInput<PJ301MPort>(Vec(9 , 65), module, ModuleNews::IN_NEWS));
+
+    addInput(createInput<PJ301MPort>(Vec(39 , 65), module, ModuleNews::IN_ORIGIN));
+    addParam(createParam<TinyKnob>(Vec(41.6, 32.5), module, ModuleNews::PARAM_ORIGIN));
+    addInput(createInput<PJ301MPort>(Vec(69 , 65), module, ModuleNews::IN_INTENSITY));
+    addParam(createParam<TinyKnob>(Vec(71.1 , 32.5), module, ModuleNews::PARAM_INTENSITY));
+    addInput(createInput<PJ301MPort>(Vec(99, 65), module, ModuleNews::IN_WRAP));
+    addParam(createParam<TinyKnob>(Vec(101, 32.5), module, ModuleNews::PARAM_WRAP));
 
     const float out_ytop = 92.5;
     for (int y = 0; y < GHEIGHT; ++y)
         for (int x = 0; x < GWIDTH; ++x) {
             int i = x + y * GWIDTH;
-            addChild(ModuleLightWidget::create<CellLight<GreenLight>>(Vec(7 + x * 30 - 0.2, out_ytop + y * 30 - 0.1), module, ModuleNews::LIGHT_GRID + i));
-            addOutput(Port::create<PJ301MPort>(Vec(7 + x * 30 + 2, out_ytop + y * 30 + 2), Port::OUTPUT, module, ModuleNews::OUT_CELL + i));
+            addChild(createLight<CellLight<GreenLight>>(Vec(7 + x * 30 - 0.2, out_ytop + y * 30 - 0.1), module, ModuleNews::LIGHT_GRID + i));
+            addOutput(createOutput<PJ301MPort>(Vec(7 + x * 30 + 2, out_ytop + y * 30 + 2), module, ModuleNews::OUT_CELL + i));
         }
 
     const float bottom_row = 345;
-    addParam(ParamWidget::create<CKSS>(Vec(5        , bottom_row), module, ModuleNews::PARAM_UNI_BI, 0.0, 1.0, 1.0));
-    addParam(ParamWidget::create<CKSS>(Vec(25       , bottom_row), module, ModuleNews::PARAM_MODE, 0.0, 1.0, 1.0));
-    addParam(ParamWidget::create<CKSS>(Vec(45       , bottom_row), module, ModuleNews::PARAM_GATEMODE, 0.0, 1.0, 1.0));
-    addParam(ParamWidget::create<CKSS>(Vec(65       , bottom_row), module, ModuleNews::PARAM_ROUND, 0.0, 1.0, 1.0));
-    addParam(ParamWidget::create<CKSS>(Vec(85       , bottom_row), module, ModuleNews::PARAM_CLAMP, 0.0, 1.0, 1.0));
-    addParam(ParamWidget::create<TinyKnob>(Vec(110  , bottom_row), module, ModuleNews::PARAM_SMOOTH, 0.0, 1.0, 0.0));
-}
+    addParam(createParam<CKSS>(Vec(5        , bottom_row), module, ModuleNews::PARAM_UNI_BI));
+    addParam(createParam<CKSS>(Vec(25       , bottom_row), module, ModuleNews::PARAM_MODE));
+    addParam(createParam<CKSS>(Vec(45       , bottom_row), module, ModuleNews::PARAM_GATEMODE));
+    addParam(createParam<CKSS>(Vec(65       , bottom_row), module, ModuleNews::PARAM_ROUND));
+    addParam(createParam<CKSS>(Vec(85       , bottom_row), module, ModuleNews::PARAM_CLAMP));
+    addParam(createParam<TinyKnob>(Vec(110  , bottom_row), module, ModuleNews::PARAM_SMOOTH));
+  }
+};
 
-Model *modelNews = Model::create<ModuleNews, WidgetNews>(
-    TOSTRING(SLUG), "NEWS", "NEWS", SEQUENCER_TAG);
+Model *modelNews = createModel<ModuleNews, WidgetNews>("NEWS");
