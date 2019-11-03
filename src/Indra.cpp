@@ -151,7 +151,7 @@ void ModuleIndra::process(const ProcessArgs& args) {
 }
 
 
-struct SlidePot : SVGSlider {
+struct SlidePot : SvgSlider {
 	SlidePot() {
         const float _h = 60;
 		Vec margin = Vec(2.5, 2.5);
