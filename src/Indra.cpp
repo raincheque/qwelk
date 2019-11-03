@@ -115,7 +115,7 @@ void ModuleIndra::process(const ProcessArgs& args) {
         } else {
             a = params[PARAM_AMP + i].getValue();
         }
-        
+
         ta += a;
         if (ma < fabs(a))
             ma = fabs(a);
@@ -209,40 +209,42 @@ struct WidgetIndra : ModuleWidget {
 
     x = x + 30;
     for (int i = 0; i < COMPONENTS; ++i) {
-        y = top + 80;
-        x = 2 + 30 * i;
-        addParam(createParam<TinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_CFM + i));
-        y += 22;
-        addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_CFM + i));
-        y += 38;
+      y = top + 80;
+      x = 2 + 30 * i;
+      addParam(createParam<TinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_CFM + i));
+      y += 22;
+      addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_CFM + i));
+      y += 38;
 
-        addParam(createParam<TinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_PHASESLEW + i));
-        y += 22;
-        addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_PHASE + i));
-        y += 35;
+      addParam(createParam<TinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_PHASESLEW + i));
+      y += 22;
+      addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_PHASE + i));
+      y += 35;
 
-        addParam(createParam<SlidePot>(Vec(x + 5, y), module, ModuleIndra::PARAM_AMP + i));
-        y += 63;
-        addParam(createParam<TinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_AMPSLEW + i));
-        y += 22;
-        addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_AMP + i));
-        y += 30;
+      addParam(createParam<SlidePot>(Vec(x + 5, y), module, ModuleIndra::PARAM_AMP + i));
+      y += 63;
+      addParam(createParam<TinyKnob>(Vec(x + knob_x, y), module, ModuleIndra::PARAM_AMPSLEW + i));
+      y += 22;
+      addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleIndra::IN_AMP + i));
+      y += 30;
 
-        addOutput(createOutput<PJ301MPort>(Vec(x, y), module, ModuleIndra::OUT_COMPONENT + i));
+      addOutput(createOutput<PJ301MPort>(Vec(x, y), module, ModuleIndra::OUT_COMPONENT + i));
     }
-}
+  }
 
-void appendContextMenu(Menu *menu) override {
-    ModuleIndra *indra = dynamic_cast<ModuleIndra *>(module);
-    assert(indra);
+  void appendContextMenu(Menu *menu) override {
+    if (module) {
+      ModuleIndra *indra = dynamic_cast<ModuleIndra *>(module);
+      assert(indra);
 
-    MenuLabel *spacer = new MenuLabel();
-    menu->addChild(spacer);
+      MenuLabel *spacer = new MenuLabel();
+      menu->addChild(spacer);
 
-    MenuItemAttenuateComponentOuts *item = new MenuItemAttenuateComponentOuts();
-    item->text = "Attenuate Component Outs";
-    item->indra = indra;
-    menu->addChild(item);
+      MenuItemAttenuateComponentOuts *item = new MenuItemAttenuateComponentOuts();
+      item->text = "Attenuate Component Outs";
+      item->indra = indra;
+      menu->addChild(item);
+    }
   }
 };
 

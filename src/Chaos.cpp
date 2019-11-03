@@ -296,6 +296,7 @@ struct WidgetChaos : ModuleWidget {
 
 
   void appendContextMenu(Menu *menu) override {
+    if (module) {
       ModuleChaos *chaos = dynamic_cast<ModuleChaos *>(module);
       assert(chaos);
 
@@ -306,6 +307,7 @@ struct WidgetChaos : ModuleWidget {
       item->text = "FUN";
       item->chaos = chaos;
       menu->addChild(item);
+    }
   }
 };
 

@@ -242,16 +242,18 @@ struct WidgetAutomaton : ModuleWidget {
   }
 
   void appendContextMenu(Menu *menu) override {
-    ModuleAutomaton *automaton = dynamic_cast<ModuleAutomaton *>(module);
-    assert(automaton);
+    if (module) {
+      ModuleAutomaton *automaton = dynamic_cast<ModuleAutomaton *>(module);
+      assert(automaton);
 
-    MenuLabel *spacer = new MenuLabel();
-    menu->addChild(spacer);
+      MenuLabel *spacer = new MenuLabel();
+      menu->addChild(spacer);
 
-    MenuItemFun *item = new MenuItemFun();
-    item->text = "FUN";
-    item->automaton = automaton;
-    menu->addChild(item);
+      MenuItemFun *item = new MenuItemFun();
+      item->text = "FUN";
+      item->automaton = automaton;
+      menu->addChild(item);
+    }
   }
 };
 

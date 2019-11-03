@@ -104,16 +104,18 @@ struct WidgetColumn : ModuleWidget {
 }
 
   void appendContextMenu(Menu *menu) override {
-    ModuleColumn *column = dynamic_cast<ModuleColumn *>(module);
-    assert(column);
+    if (module) {
+      ModuleColumn *column = dynamic_cast<ModuleColumn *>(module);
+      assert(column);
 
-    MenuLabel *spacer = new MenuLabel();
-    menu->addChild(spacer);
+      MenuLabel *spacer = new MenuLabel();
+      menu->addChild(spacer);
 
-    MenuItemAllowNegWeights *item = new MenuItemAllowNegWeights();
-    item->text = "Allow Negative Weights";
-    item->col  = column;
-    menu->addChild(item);
+      MenuItemAllowNegWeights *item = new MenuItemAllowNegWeights();
+      item->text = "Allow Negative Weights";
+      item->col  = column;
+      menu->addChild(item);
+    }
   }
 };
 
