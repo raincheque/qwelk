@@ -1,4 +1,3 @@
-#include "dsp/digital.hpp"
 #include "qwelk.hpp"
 
 #define CHANNELS 8
@@ -20,33 +19,33 @@ struct ModuleNot : Module {
         NUM_LIGHTS
     };
 
-    ModuleNot() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
-    void step() override;
+    ModuleNot() {
+		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);}
+    void process(const ProcessArgs& args) override;
 };
 
-void ModuleNot::step() {
+void ModuleNot::process(const ProcessArgs& args) {
     for (int i = 0; i < CHANNELS; ++i) {
-        outputs[OUTPUT_NOT + i].value = inputs[INPUT_SIG + i].value != 0.0 ? 0.0 : 10.0;
+        outputs[OUTPUT_NOT + i].setVoltage(inputs[INPUT_SIG + i].getVoltage() != 0.0 ? 0.0 : 10.0);
     }
 }
 
 struct WidgetNot : ModuleWidget {
-    WidgetNot(ModuleNot *module);
-};
+  WidgetNot(ModuleNot *module) {
 
-WidgetNot::WidgetNot(ModuleNot *module) : ModuleWidget(module) {
+		setModule(module);
 
-    setPanel(SVG::load(assetPlugin(plugin, "res/Not.svg")));
+    setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Not.svg")));
 
-    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
-    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 0)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 365)));
 
     float x = box.size.x / 2.0 - 25, ytop = 45, ystep = 39;
     for (int i = 0; i < CHANNELS; ++i) {
-        addInput(Port::create<PJ301MPort>(   Vec(x       , ytop + ystep * i), Port::INPUT, module, ModuleNot::INPUT_SIG  + i));
-        addOutput(Port::create<PJ301MPort>( Vec(x + 26  , ytop + ystep * i), Port::OUTPUT, module, ModuleNot::OUTPUT_NOT + i));
+        addInput(createInput<PJ301MPort>(   Vec(x       , ytop + ystep * i), module, ModuleNot::INPUT_SIG  + i));
+        addOutput(createOutput<PJ301MPort>( Vec(x + 26  , ytop + ystep * i), module, ModuleNot::OUTPUT_NOT + i));
     }
-}
+  }
+};
 
-Model *modelNot = Model::create<ModuleNot, WidgetNot>(
-    TOSTRING(SLUG), "NOT", "NOT", UTILITY_TAG, LOGIC_TAG);
+Model *modelNot = createModel<ModuleNot, WidgetNot>("NOT");

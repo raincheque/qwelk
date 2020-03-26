@@ -2,7 +2,7 @@
 
 using namespace rack;
 
-extern Plugin *plugin;
+extern Plugin *pluginInstance;
 
 extern Model *modelAutomaton;
 extern Model *modelByte;
@@ -21,12 +21,12 @@ extern Model *modelIndra;
 
 struct TinyKnob : RoundKnob {
     TinyKnob() {
-        setSVG(SVG::load(assetPlugin(plugin, "res/TinyKnob.svg")));
+        setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/TinyKnob.svg")));
     }
 };
 
 struct SmallKnob : RoundKnob {
     SmallKnob() {
-        setSVG(SVG::load(assetPlugin(plugin, "res/SmallKnob.svg")));
+        setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SmallKnob.svg")));
     }
 };

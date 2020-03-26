@@ -1,4 +1,3 @@
-#include "dsp/digital.hpp"
 #include "qwelk.hpp"
 
 
@@ -24,41 +23,41 @@ struct ModuleScaler : Module {
         NUM_LIGHTS
     };
 
-    ModuleScaler() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
-    void step() override;
+    ModuleScaler() {
+		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);}
+    void process(const ProcessArgs& args) override;
 };
 
-void ModuleScaler::step() {
-    outputs[OUTPUT_SUB_5].value = inputs[INPUT_SUB_5].value - 5.0;
-    outputs[OUTPUT_MUL_2].value = inputs[INPUT_MUL_2].normalize(outputs[OUTPUT_SUB_5].value) * 2.0;
-    outputs[OUTPUT_DIV_2].value = inputs[INPUT_DIV_2].normalize(outputs[OUTPUT_MUL_2].value) * 0.5;
-    outputs[OUTPUT_ADD_5].value = inputs[INPUT_ADD_5].normalize(outputs[OUTPUT_DIV_2].value) + 5.0;
+void ModuleScaler::process(const ProcessArgs& args) {
+    outputs[OUTPUT_SUB_5].setVoltage(inputs[INPUT_SUB_5].getVoltage() - 5.0);
+    outputs[OUTPUT_MUL_2].setVoltage(inputs[INPUT_MUL_2].getNormalVoltage(outputs[OUTPUT_SUB_5].getVoltage()) * 2.0);
+    outputs[OUTPUT_DIV_2].setVoltage(inputs[INPUT_DIV_2].getNormalVoltage(outputs[OUTPUT_MUL_2].getVoltage()) * 0.5);
+    outputs[OUTPUT_ADD_5].setVoltage(inputs[INPUT_ADD_5].getNormalVoltage(outputs[OUTPUT_DIV_2].getVoltage()) + 5.0);
 }
 
 struct WidgetScaler : ModuleWidget {
-    WidgetScaler(ModuleScaler *module);
-};
+  WidgetScaler(ModuleScaler *module) {
 
-WidgetScaler::WidgetScaler(ModuleScaler *module) : ModuleWidget(module) {
+		setModule(module);
 
-    setPanel(SVG::load(assetPlugin(plugin, "res/Scaler.svg")));
+    setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Scaler.svg")));
 
-    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
-    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 0)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 365)));
 
     float x = box.size.x / 2.0 - 12, y = 0, ytop = 30, ystep = 30, mstep = 16;
-    addInput(Port::create<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), Port::INPUT, module, ModuleScaler::INPUT_SUB_5));
-    addOutput(Port::create<PJ301MPort>( Vec(x, ytop + (y+=ystep)), Port::OUTPUT, module, ModuleScaler::OUTPUT_SUB_5));
+    addInput(createInput<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), module, ModuleScaler::INPUT_SUB_5));
+    addOutput(createOutput<PJ301MPort>( Vec(x, ytop + (y+=ystep)), module, ModuleScaler::OUTPUT_SUB_5));
     ytop += mstep;
-    addInput(Port::create<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), Port::INPUT, module, ModuleScaler::INPUT_MUL_2));
-    addOutput(Port::create<PJ301MPort>( Vec(x, ytop + (y+=ystep)), Port::OUTPUT, module, ModuleScaler::OUTPUT_MUL_2));
+    addInput(createInput<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), module, ModuleScaler::INPUT_MUL_2));
+    addOutput(createOutput<PJ301MPort>( Vec(x, ytop + (y+=ystep)), module, ModuleScaler::OUTPUT_MUL_2));
     ytop += mstep;
-    addInput(Port::create<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), Port::INPUT, module, ModuleScaler::INPUT_DIV_2));
-    addOutput(Port::create<PJ301MPort>( Vec(x, ytop + (y+=ystep)), Port::OUTPUT, module, ModuleScaler::OUTPUT_DIV_2));
+    addInput(createInput<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), module, ModuleScaler::INPUT_DIV_2));
+    addOutput(createOutput<PJ301MPort>( Vec(x, ytop + (y+=ystep)), module, ModuleScaler::OUTPUT_DIV_2));
     ytop += mstep;
-    addInput(Port::create<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), Port::INPUT, module, ModuleScaler::INPUT_ADD_5));
-    addOutput(Port::create<PJ301MPort>( Vec(x, ytop + (y+=ystep)), Port::OUTPUT, module, ModuleScaler::OUTPUT_ADD_5));
-}
+    addInput(createInput<PJ301MPort>(   Vec(x, ytop + (y+=ystep)), module, ModuleScaler::INPUT_ADD_5));
+    addOutput(createOutput<PJ301MPort>( Vec(x, ytop + (y+=ystep)), module, ModuleScaler::OUTPUT_ADD_5));
+  }
+};
 
-Model *modelScaler = Model::create<ModuleScaler, WidgetScaler>(
-    TOSTRING(SLUG), "Scaler", "Scaler", UTILITY_TAG);
+Model *modelScaler = createModel<ModuleScaler, WidgetScaler>("Scaler");

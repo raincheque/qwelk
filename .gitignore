@@ -1,4 +1,7 @@
-/dist
 /build
+/dist
+/plugin.dylib
 /plugin.dll
-/test_patches
+/plugin.so
+.DS_Store
+.vscode/

@@ -1,6 +1,3 @@
-SLUG = Qwelk
-VERSION = 0.6.1
-
 SOURCES += $(wildcard src/*.cpp)
 
 DISTRIBUTABLES += $(wildcard LICENSE*) res
@@ -10,9 +7,9 @@ include $(RACK_DIR)/plugin.mk
 
 
 # # FLAGS will be passed to both the C and C++ compiler
-# FLAGS +=
-# CFLAGS +=
-# CXXFLAGS +=
+FLAGS +=
+CFLAGS +=
+CXXFLAGS +=
 
 # # Careful about linking to libraries, since you can't assume much about the user's environment and library search path.
 # # Static libraries are fine.

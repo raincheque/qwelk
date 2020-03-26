@@ -1,9 +1,6 @@
-#include "dsp/digital.hpp"
 #include "qwelk.hpp"
 
-
 #define CHANNELS 4
-
 
 struct ModuleColumn : Module {
     enum ParamIds {
@@ -27,74 +24,52 @@ struct ModuleColumn : Module {
     };
 
     bool allow_neg_weights = false;
-    
-    ModuleColumn() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
-    void step() override;
+
+    ModuleColumn() {
+		  config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
+      configParam(ModuleColumn::PARAM_AVG, 0.0, 1.0, 1.0, "");
+      configParam(ModuleColumn::PARAM_WEIGHTED, 0.0, 1.0, 1.0, "");
+    }
+    void process(const ProcessArgs& args) override;
 };
 
-void ModuleColumn::step()
+void ModuleColumn::process(const ProcessArgs& args)
 {
-    bool avg        = params[PARAM_AVG].value == 0.0;
-    bool weighted   = params[PARAM_WEIGHTED].value == 0.0;
+    bool avg        = params[PARAM_AVG].getValue() == 0.0;
+    bool weighted   = params[PARAM_WEIGHTED].getValue() == 0.0;
 
     float total     = 0;
     float on_count  = 0;
 
     for (int i = 0; i < CHANNELS; ++i) {
-        float in_upstream   = inputs[IN_UPSTREAM + i].value;
-        float in_sig        = inputs[IN_SIG + i].value;
+        float in_upstream   = inputs[IN_UPSTREAM + i].getVoltage();
+        float in_sig        = inputs[IN_SIG + i].getVoltage();
 
         // just forward the input signal as the side stream,
         // used for chaining multiple Columns together
-        outputs[OUT_SIDE + i].value = in_sig;
-        
-        if (inputs[IN_UPSTREAM + i].active) {
+        outputs[OUT_SIDE + i].setVoltage(in_sig);
+
+        if (inputs[IN_UPSTREAM + i].isConnected()) {
             if (weighted)
                 on_count += allow_neg_weights ? in_upstream : fabs(in_upstream);
             else if (in_upstream != 0.0)
                 on_count += 1;
         }
-        
+
         if (!weighted && in_sig != 0.0)
             on_count += 1;
 
         float product = weighted ? (in_upstream * in_sig) : (in_upstream + in_sig);
 
         total += product;
-        
-        outputs[OUT_DOWNSTREAM + i].value = avg ? ((on_count != 0) ? (total / on_count) : 0) : (total);
-    }
-}
 
-struct WidgetColumn : ModuleWidget {
-    WidgetColumn(ModuleColumn *module);
-    Menu *createContextMenu() override;
-};
-
-WidgetColumn::WidgetColumn(ModuleColumn *module) : ModuleWidget(module) {
-
-    setPanel(SVG::load(assetPlugin(plugin, "res/Column.svg")));
-
-    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
-    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
-
-    addParam(ParamWidget::create<CKSS>(Vec(3.5, 30), module, ModuleColumn::PARAM_AVG, 0.0, 1.0, 1.0));
-    addParam(ParamWidget::create<CKSS>(Vec(42, 30), module, ModuleColumn::PARAM_WEIGHTED, 0.0, 1.0, 1.0));
-
-    float x = 2.5, xstep = 15, ystep = 23.5;
-    for (int i = 0; i < CHANNELS; ++i)
-    {
-        float y = 80 + i * 80;
-        addInput(Port::create<PJ301MPort>(Vec(x + xstep, y - ystep), Port::INPUT, module, ModuleColumn::IN_UPSTREAM + i));
-        addOutput(Port::create<PJ301MPort>(Vec(x + xstep*2, y), Port::OUTPUT, module, ModuleColumn::OUT_SIDE + i));
-        addInput(Port::create<PJ301MPort>(Vec(x, y), Port::INPUT, module, ModuleColumn::IN_SIG + i));
-        addOutput(Port::create<PJ301MPort>(Vec(x + xstep, y + ystep), Port::OUTPUT, module, ModuleColumn::OUT_DOWNSTREAM + i));
+        outputs[OUT_DOWNSTREAM + i].setVoltage(avg ? ((on_count != 0) ? (total / on_count) : 0) : (total));
     }
 }
 
 struct MenuItemAllowNegWeights : MenuItem {
     ModuleColumn *col;
-    void onAction(EventAction &e) override
+    void onAction(const event::Action &e) override
     {
         col->allow_neg_weights ^= true;
     }
@@ -104,23 +79,44 @@ struct MenuItemAllowNegWeights : MenuItem {
     }
 };
 
-Menu *WidgetColumn::createContextMenu()
-{
-    Menu *menu = ModuleWidget::createContextMenu();
+struct WidgetColumn : ModuleWidget {
+  WidgetColumn(ModuleColumn *module) {
 
-    MenuLabel *spacer = new MenuLabel();
-    menu->addChild(spacer);
+		setModule(module);
 
-    ModuleColumn *column = dynamic_cast<ModuleColumn *>(module);
-    assert(column);
+    setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Column.svg")));
 
-    MenuItemAllowNegWeights *item = new MenuItemAllowNegWeights();
-    item->text = "Allow Negative Weights";
-    item->col  = column;
-    menu->addChild(item);
+    addChild(createWidget<ScrewSilver>(Vec(15, 0)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 365)));
 
-    return menu;
+    addParam(createParam<CKSS>(Vec(3.5, 30), module, ModuleColumn::PARAM_AVG));
+    addParam(createParam<CKSS>(Vec(42, 30), module, ModuleColumn::PARAM_WEIGHTED));
+
+    float x = 2.5, xstep = 15, ystep = 23.5;
+    for (int i = 0; i < CHANNELS; ++i)
+    {
+        float y = 80 + i * 80;
+        addInput(createInput<PJ301MPort>(Vec(x + xstep, y - ystep), module, ModuleColumn::IN_UPSTREAM + i));
+        addOutput(createOutput<PJ301MPort>(Vec(x + xstep*2, y), module, ModuleColumn::OUT_SIDE + i));
+        addInput(createInput<PJ301MPort>(Vec(x, y), module, ModuleColumn::IN_SIG + i));
+        addOutput(createOutput<PJ301MPort>(Vec(x + xstep, y + ystep), module, ModuleColumn::OUT_DOWNSTREAM + i));
+    }
 }
 
-Model *modelColumn = Model::create<ModuleColumn, WidgetColumn>(
-    TOSTRING(SLUG), "Column", "Column", MIXER_TAG);
+  void appendContextMenu(Menu *menu) override {
+    if (module) {
+      ModuleColumn *column = dynamic_cast<ModuleColumn *>(module);
+      assert(column);
+
+      MenuLabel *spacer = new MenuLabel();
+      menu->addChild(spacer);
+
+      MenuItemAllowNegWeights *item = new MenuItemAllowNegWeights();
+      item->text = "Allow Negative Weights";
+      item->col  = column;
+      menu->addChild(item);
+    }
+  }
+};
+
+Model *modelColumn = createModel<ModuleColumn, WidgetColumn>("Column");

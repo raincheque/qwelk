@@ -23,42 +23,48 @@ struct ModuleGate : Module {
         NUM_LIGHTS
     };
 
-    ModuleGate() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
-    void step() override;
+    ModuleGate() {
+		  config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
+      for (int i = 0; i < CHANNELS; ++i) {
+        configParam(ModuleGate::PARAM_GATEMODE + i, 0.0, 1.0, 1.0, "");
+        configParam(ModuleGate::PARAM_THRESHOLD + i, -10.0, 10.0, 0, "");
+        configParam(ModuleGate::PARAM_OUTGAIN + i, -1.0, 1.0, 1.0, "");
+      }
+    }
+    void process(const ProcessArgs& args) override;
 };
 
-void ModuleGate::step() {
+void ModuleGate::process(const ProcessArgs& args) {
     for (int i = 0; i < CHANNELS; ++i) {
-        bool gatemode = params[PARAM_GATEMODE + i].value > 0.0;
-        float in = inputs[IN_SIG + i].value;
-        float threshold = params[PARAM_THRESHOLD + i].value;
-        float out_gain = params[PARAM_OUTGAIN + i].value;
+        bool gatemode = params[PARAM_GATEMODE + i].getValue() > 0.0;
+        float in = inputs[IN_SIG + i].getVoltage();
+        float threshold = params[PARAM_THRESHOLD + i].getValue();
+        float out_gain = params[PARAM_OUTGAIN + i].getValue();
         float out = ((threshold >= 0) ? (in > threshold) : (in < threshold))
                     ? (gatemode ? 10.0 : in) : 0.0;
-        outputs[OUT_GATE + i].value = out * out_gain;
+        outputs[OUT_GATE + i].setVoltage(out * out_gain);
     }
 }
 
 struct WidgetGate : ModuleWidget {
-    WidgetGate(ModuleGate *module);
-};
+  WidgetGate(ModuleGate *module) {
 
-WidgetGate::WidgetGate(ModuleGate *module) : ModuleWidget(module) {
+		setModule(module);
 
-    setPanel(SVG::load(assetPlugin(plugin, "res/Gate.svg")));
+    setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Gate.svg")));
 
-    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
-    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 0)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 365)));
 
     for (int i = 0; i < CHANNELS; ++i) {
         float x = 2.5, top = 45 + i * 158;
-        addParam(ParamWidget::create<CKSS>(         Vec(x + 5.7, top +   8), module, ModuleGate::PARAM_GATEMODE + i, 0.0, 1.0, 1.0));
-        addParam(ParamWidget::create<TinyKnob>(Vec(x + 2.5, top +  40), module, ModuleGate::PARAM_THRESHOLD + i, -10.0, 10.0, 0));
-        addInput(Port::create<PJ301MPort>(   Vec(x      , top +  63), Port::INPUT, module, ModuleGate::IN_SIG + i));
-        addParam(ParamWidget::create<TinyKnob>(Vec(x + 2.5, top + 102), module, ModuleGate::PARAM_OUTGAIN + i, -1.0, 1.0, 1.0));
-        addOutput(Port::create<PJ301MPort>( Vec(x      , top + 125), Port::OUTPUT, module, ModuleGate::OUT_GATE + i));
+        addParam(createParam<CKSS>(         Vec(x + 5.7, top +   8), module, ModuleGate::PARAM_GATEMODE + i));
+        addParam(createParam<TinyKnob>(Vec(x + 2.5, top +  40), module, ModuleGate::PARAM_THRESHOLD + i));
+        addInput(createInput<PJ301MPort>(   Vec(x      , top +  63), module, ModuleGate::IN_SIG + i));
+        addParam(createParam<TinyKnob>(Vec(x + 2.5, top + 102), module, ModuleGate::PARAM_OUTGAIN + i));
+        addOutput(createOutput<PJ301MPort>( Vec(x      , top + 125), module, ModuleGate::OUT_GATE + i));
     }
-}
+  }
+};
 
-Model *modelGate = Model::create<ModuleGate, WidgetGate>(
-    TOSTRING(SLUG), "Gate", "Gate", UTILITY_TAG, ATTENUATOR_TAG);
+Model *modelGate = createModel<ModuleGate, WidgetGate>("Gate");

@@ -1,13 +1,10 @@
 #include "qwelk.hpp"
 
-Plugin *plugin;
+Plugin *pluginInstance;
 
 void init(rack::Plugin *p) {
-    plugin = p;
+    pluginInstance = p;
 	
-	p->slug = TOSTRING(SLUG);
-	p->version = TOSTRING(VERSION);
-
     p->addModel(modelAutomaton);
     p->addModel(modelByte);
     p->addModel(modelChaos);
@@ -21,5 +18,5 @@ void init(rack::Plugin *p) {
     p->addModel(modelScaler);
     p->addModel(modelWrap);
     p->addModel(modelXFade);
-	p->addModel(modelIndra);
+    p->addModel(modelIndra);
 }

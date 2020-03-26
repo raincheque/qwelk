@@ -1,4 +1,3 @@
-#include "dsp/digital.hpp"
 #include "qwelk.hpp"
 
 #define CHANNELS 3
@@ -21,35 +20,34 @@ struct ModuleXor : Module {
         NUM_LIGHTS
     };
 
-    ModuleXor() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
-    void step() override;
+    ModuleXor() {
+		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);}
+    void process(const ProcessArgs& args) override;
 };
 
-void ModuleXor::step() {
+void ModuleXor::process(const ProcessArgs& args) {
     for (int i = 0; i < CHANNELS; ++i)
-        outputs[OUTPUT_XOR + i].value = inputs[INPUT_A + i].value == inputs[INPUT_B + i].value ? 0.0 : 10.0;
+        outputs[OUTPUT_XOR + i].setVoltage(inputs[INPUT_A + i].getVoltage() == inputs[INPUT_B + i].getVoltage() ? 0.0 : 10.0);
 }
 
 struct WidgetXor : ModuleWidget {
-    WidgetXor(ModuleXor *module);
-};
+  WidgetXor(ModuleXor *module) {
+		setModule(module);
 
-WidgetXor::WidgetXor(ModuleXor *module) : ModuleWidget(module) {
-
-    setPanel(SVG::load(assetPlugin(plugin, "res/Xor.svg")));
+    setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Xor.svg")));
 
 
-    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
-    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 0)));
+    addChild(createWidget<ScrewSilver>(Vec(15, 365)));
 
     float x = box.size.x / 2.0 - 12, ytop = 45, ystep = 37.5;
     for (int i = 0; i < CHANNELS; ++i) {
-        addInput(Port::create<PJ301MPort>(   Vec(x, ytop + ystep * i), Port::INPUT, module, ModuleXor::INPUT_A + i));
-        addInput(Port::create<PJ301MPort>(   Vec(x, ytop + ystep*1 + ystep * i), Port::INPUT, module, ModuleXor::INPUT_B + i));
-        addOutput(Port::create<PJ301MPort>( Vec(x, ytop + ystep*2 + ystep  * i), Port::OUTPUT, module, ModuleXor::OUTPUT_XOR + i));
+        addInput(createInput<PJ301MPort>(   Vec(x, ytop + ystep * i), module, ModuleXor::INPUT_A + i));
+        addInput(createInput<PJ301MPort>(   Vec(x, ytop + ystep*1 + ystep * i), module, ModuleXor::INPUT_B + i));
+        addOutput(createOutput<PJ301MPort>( Vec(x, ytop + ystep*2 + ystep  * i), module, ModuleXor::OUTPUT_XOR + i));
         ytop += 3 * ystep - 42.5;
     }
-}
+  }
+};
 
-Model *modelXor = Model::create<ModuleXor, WidgetXor>(
-    TOSTRING(SLUG), "XOR", "XOR", UTILITY_TAG, LOGIC_TAG);
+Model *modelXor = createModel<ModuleXor, WidgetXor>("XOR");
