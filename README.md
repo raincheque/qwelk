@@ -63,6 +63,6 @@ Column is a Mixer/Averager. Righthand outputs output the lefthand input signal u
 		Weighted Averages.
 
 ### Can you really make music with these modules? They look boring.
-Yes. [Sort of.](https://co-dependent.bandcamp.com/album/code147)
+Yes. [Sort of.] (https://co-dependent.bandcamp.com/album/code147) [I guess.] (https://parsa.bandcamp.com)
 
 You can [buy me music](https://bandcamp.com/raincheque/wishlist) if you like the modules!
