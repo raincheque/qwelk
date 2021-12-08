@@ -104,7 +104,8 @@ void ModuleNews::process(const ProcessArgs& args)
         news = ceil(news);
 
     // wrap the bits around, e.g. wrap = 2, 1001 ->  0110 / wrap = -3,  1001 -> 0011
-    uint32_t bits = *(reinterpret_cast<uint32_t *>(&news));
+    uint32_t bits;
+    memcpy(&bits, &news, sizeof news);
     if (wrap > 0)
         bits = (bits << wrap) | (bits >> (32 - wrap));
     else if (wrap < 0) {
@@ -112,10 +113,11 @@ void ModuleNews::process(const ProcessArgs& args)
         bits = (bits >> wrap) | (bits << (32 - wrap));
     }
 
-    news = *((float *)&bits);
+    memcpy(&news, &bits, sizeof bits);
 
     // extract the key out the bits which represent the input signal
-    uint32_t key = *(reinterpret_cast<uint32_t *>(&news));
+    uint32_t key;
+    memcpy(&key, &news, sizeof news);
 
     // reset grid
     for (int i = 0; i < GSIZE; ++i)
